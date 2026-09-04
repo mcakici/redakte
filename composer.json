@@ -1,0 +1,59 @@
+{
+    "name": "redakte/redakte",
+    "description": "Metinlerdeki hassas kişisel verileri (TCKN, VKN, IBAN, Telefon, İsim-Soyisim, E-posta vb.) algılayan ve redakte eden PHP ve Laravel kütüphanesi",
+    "keywords": [
+        "php",
+        "laravel",
+        "redakte",
+        "redaction",
+        "anonymization",
+        "gdpr",
+        "kvkk",
+        "pii",
+        "tckn",
+        "iban"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Redakte Contributors",
+            "homepage": "https://github.com/redakte/redakte"
+        }
+    ],
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0|^11.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0"
+    },
+    "suggest": {
+        "illuminate/support": "Laravel ServiceProvider ve Facade desteği için (^10.0|^11.0|^12.0)",
+        "illuminate/config": "Laravel config entegrasyonu için (^10.0|^11.0|^12.0)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Redakte\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Redakte\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Redakte\\RedakteServiceProvider"
+            ],
+            "aliases": {
+                "Redakte": "Redakte\\Facades\\Redakte"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
