@@ -1,6 +1,6 @@
 # Redakte - PHP & Laravel Kişisel Veri Redaksiyon ve Anonimleştirme Paketi
 
-[![Latest Version](https://img.shields.io/packagist/v/redakte/redakte.svg?style=flat-square)](https://packagist.org/packages/redakte/redakte)
+[![Latest Version](https://img.shields.io/packagist/v/mcakici/redakte.svg?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?style=flat-square)](#-testleri-çalıştırma)
 
@@ -47,7 +47,7 @@
 ### Composer ile Yükleme
 
 ```bash
-composer require redakte/redakte
+composer require mcakici/redakte
 ```
 
 ### Konfigürasyonu Yayınlama (Laravel için İsteğe Bağlı)

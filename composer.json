@@ -1,5 +1,5 @@
 {
-    "name": "redakte/redakte",
+    "name": "mcakici/redakte",
     "description": "Metinlerdeki hassas kişisel verileri (TCKN, VKN, IBAN, Telefon, İsim-Soyisim, E-posta vb.) algılayan ve redakte eden PHP ve Laravel kütüphanesi",
     "keywords": [
         "php",
@@ -17,7 +17,7 @@
     "authors": [
         {
             "name": "Redakte Contributors",
-            "homepage": "https://github.com/redakte/redakte"
+            "homepage": "https://github.com/mcakici/redakte"
         }
     ],
     "require": {
