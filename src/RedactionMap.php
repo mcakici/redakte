@@ -5,24 +5,39 @@ declare(strict_types=1);
 namespace Redakte;
 
 use JsonSerializable;
+use Redakte\Exceptions\UnsafeUnmaskException;
+use Redakte\Token\TokenFactory;
 
 /**
  * Redakte edilen yer tutucular (token) ile orijinal veriler arasındaki eşleşmeleri
  * tutan ve metni orijinal haline geri döndürmeyi (de-anonymization / unmask) sağlayan sınıf.
  *
- * LLM / AI entegrasyonlarında prompt gönderilmeden önce anonimleştirme ve
- * AI cevabındaki etiketleri tekrar gerçek değerlerle takas etme için kullanılır.
+ * GÜVENLİK UYARISI:
+ * Bu sınıf orijinal kişisel verileri içerir. Yalnızca güvenli bellek alanında tutulmalı,
+ * loglara yazdırılmamalı ve kalıcılaştırılacaksa mutlaka şifrelenerek saklanmalıdır.
  */
 class RedactionMap implements JsonSerializable
 {
     /**
-     * @param array<string, string> $tokens [ '[TOKEN]' => 'Orijinal Değer' ]
-     * @param array<string, string> $types  [ '[TOKEN]' => 'ENTITY_TYPE' ]
+     * @param array<string, string> $tokens [ 'TOKEN' => 'Orijinal Değer' ]
+     * @param array<string, string> $types  [ 'TOKEN' => 'ENTITY_TYPE' ]
+     * @param string $sessionId Oturum kimliği
      */
     public function __construct(
         private array $tokens = [],
         private array $types = [],
+        private string $sessionId = '',
     ) {}
+
+    public function getSessionId(): string
+    {
+        return $this->sessionId;
+    }
+
+    public function setSessionId(string $sessionId): void
+    {
+        $this->sessionId = $sessionId;
+    }
 
     /**
      * Yeni bir eşleşme ekler
@@ -80,31 +95,55 @@ class RedactionMap implements JsonSerializable
     }
 
     /**
-     * Haritadaki token'ları hedef metinde orijinal değerleriyle değiştirerek çözer (Unmask / De-anonymize).
+     * Haritadaki token'ları hedef metinde orijinal değerleriyle değiştirerek çözer (Unmask).
      *
-     * @param string $text Token içeren metin (örneğin LLM'den dönen yanıt)
+     * @param string $text Token içeren metin
+     * @param string|null $expectedSessionId Belirtilirse, başka session'a ait tokenların çözülmesini engeller
      * @return string Orijinal değerlerine kavuşturulmuş metin
+     * @throws UnsafeUnmaskException
      */
-    public function unmask(string $text): string
+    public function unmask(string $text, ?string $expectedSessionId = null): string
     {
         if (empty($this->tokens)) {
             return $text;
         }
 
-        // strtr PHP'de en uzun eşleşmeyi önceleyecek şekilde optimize çalışır
+        // Çapraz oturum kontrolü
+        if ($expectedSessionId !== null && $this->sessionId !== '' && $expectedSessionId !== $this->sessionId) {
+            throw new UnsafeUnmaskException(
+                sprintf('Oturum uyuşmazlığı tespit edildi: Harita session ID (%s) ile beklenen (%s) eşleşmiyor.', $this->sessionId, $expectedSessionId)
+            );
+        }
+
+        // strtr en uzun anahtarları önceleyecek şekilde C seviyesinde güvenli eşleştirme yapar
         return strtr($text, $this->tokens);
     }
 
     /**
-     * Dizi formatında temsil
+     * Güvenli, hassas veri içermeyen metadata özeti
      *
-     * @return array{tokens: array<string, string>, types: array<string, string>}
+     * @return array<string, mixed>
+     */
+    public function toSafeArray(): array
+    {
+        return [
+            'count' => $this->count(),
+            'session_id' => $this->sessionId,
+            'types' => array_values(array_unique(array_values($this->types))),
+        ];
+    }
+
+    /**
+     * Dizi formatında temsil (hassas veri içerir)
+     *
+     * @return array{tokens: array<string, string>, types: array<string, string>, session_id: string}
      */
     public function toArray(): array
     {
         return [
             'tokens' => $this->tokens,
             'types' => $this->types,
+            'session_id' => $this->sessionId,
         ];
     }
 
@@ -130,6 +169,7 @@ class RedactionMap implements JsonSerializable
     {
         $tokens = $data['tokens'] ?? $data;
         $types = $data['types'] ?? [];
+        $sessionId = is_string($data['session_id'] ?? null) ? $data['session_id'] : '';
 
         $cleanTokens = [];
         foreach ($tokens as $k => $v) {
@@ -145,7 +185,7 @@ class RedactionMap implements JsonSerializable
             }
         }
 
-        return new self($cleanTokens, $cleanTypes);
+        return new self($cleanTokens, $cleanTypes, $sessionId);
     }
 
     /**

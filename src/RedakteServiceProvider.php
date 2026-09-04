@@ -79,14 +79,14 @@ class RedakteServiceProvider extends ServiceProvider
             ], 'redakte-config');
         }
 
-        // Blade Direktifleri Kaydı
+        // Blade Direktifleri Kaydı (P0-08: XSS Koruması)
         if (class_exists(Blade::class)) {
             Blade::directive('redakte', function (string $expression) {
-                return "<?php echo \Redakte\Redakte::clean({$expression}); ?>";
+                return "<?php echo e(\\Redakte\\Redakte::clean({$expression})); ?>";
             });
 
             Blade::directive('redaktePartial', function (string $expression) {
-                return "<?php echo \Redakte\Redakte::partial({$expression}); ?>";
+                return "<?php echo e(\\Redakte\\Redakte::partial({$expression})); ?>";
             });
         }
     }

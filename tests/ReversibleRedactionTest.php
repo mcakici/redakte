@@ -67,4 +67,47 @@ class ReversibleRedactionTest extends TestCase
         $unmasked = $reconstructed->unmask('[KISI_1] ve [TCKN_1]');
         $this->assertSame('Ali Kaya ve 43650391326', $unmasked);
     }
+
+    public function test_unmask_throws_exception_on_non_tag_strategy(): void
+    {
+        $this->expectException(\Redakte\Exceptions\UnsafeUnmaskException::class);
+
+        $result = Redakte::redact('TCKN: 43650391326', \Redakte\RedactionOptions::label());
+        $result->unmask('[TCKN]');
+    }
+
+    public function test_namespaced_tokens_and_session_consistency(): void
+    {
+        $session = Redakte::session();
+
+        $page1 = Redakte::redact('Davacı Ahmet Yılmaz arandı.', [
+            'session' => $session,
+            'token_format' => 'namespaced',
+        ]);
+        $page2 = Redakte::redact('Ahmet Yılmaz ile tekrar görüşüldü.', [
+            'session' => $session,
+            'token_format' => 'namespaced',
+        ]);
+
+        // Token ⟦RDT:sessionId:KISI:1⟧ biçiminde olmalı
+        $this->assertMatchesRegularExpression('/⟦RDT:[a-zA-Z0-9_-]+:KISI:1⟧/', $page1->redactedText);
+        $this->assertMatchesRegularExpression('/⟦RDT:[a-zA-Z0-9_-]+:KISI:1⟧/', $page2->redactedText);
+
+        // İki sayfada da aynı kişi aynı tokenı almalı (P2-04)
+        preg_match('/⟦RDT:[a-zA-Z0-9_-]+:KISI:1⟧/', $page1->redactedText, $m);
+        $token1 = $m[0];
+        $this->assertStringContainsString($token1, $page2->redactedText);
+
+        // Oturum haritası iki sayfayı da çözebilmeli
+        $unmasked = $session->getMap()->unmask($page2->redactedText);
+        $this->assertStringContainsString('Ahmet Yılmaz ile tekrar görüşüldü.', $unmasked);
+    }
+
+    public function test_cross_session_unmask_protection(): void
+    {
+        $this->expectException(\Redakte\Exceptions\UnsafeUnmaskException::class);
+
+        $map = new RedactionMap(['⟦RDT:sess1:KISI:1⟧' => 'Gizli Kişi'], [], 'sess1');
+        $map->unmask('⟦RDT:sess1:KISI:1⟧', expectedSessionId: 'sess2');
+    }
 }

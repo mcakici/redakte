@@ -78,15 +78,17 @@ trait HasRedaction
 
     /**
      * Sihirli getter: $model->redacted_content çağrıldığında
-     * otomatik olarak getRedactedAttribute('content') sonucunu döner.
+     * yalnızca $redactable listesinde açıkça tanımlanmış alanlar için
+     * otomatik olarak getRedactedAttribute('content') sonucunu döner (P1-21).
      */
     public function __get($key)
     {
         if (str_starts_with($key, 'redacted_')) {
             $realKey = substr($key, 9);
-            if ($this->isRedactable($realKey) || array_key_exists($realKey, $this->attributes ?? [])) {
+            if ($this->isRedactable($realKey)) {
                 return $this->getRedactedAttribute($realKey);
             }
+            return null;
         }
 
         return parent::__get($key);

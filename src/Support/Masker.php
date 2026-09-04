@@ -19,9 +19,10 @@ final class Masker
         string $entityType,
         MaskStrategy $strategy,
         int $index = 1,
+        ?string $token = null,
     ): string {
         return match ($strategy) {
-            MaskStrategy::TAG => '[' . $entityType . '_' . $index . ']',
+            MaskStrategy::TAG => $token ?? '[' . $entityType . '_' . $index . ']',
             MaskStrategy::LABEL => '[' . $entityType . ']',
             MaskStrategy::ASTERISK => self::maskAsterisk($value),
             MaskStrategy::PARTIAL => self::maskPartial($value, $entityType),
@@ -66,6 +67,9 @@ final class Masker
             'KREDI_KARTI' => self::partialCreditCard($value),
             'PLAKA' => self::partialPlate($value),
             'MERSIS' => self::partialMersis($value),
+            'IP_ADRESI' => self::partialIp($value),
+            'ESAS_NO', 'KARAR_NO', 'DOSYA_NO' => self::partialLegalNumber($value),
+            'ADRES' => self::partialAddress($value),
             default => self::partialGeneric($value),
         };
     }
@@ -178,6 +182,32 @@ final class Masker
             return substr($clean, 0, 4) . '********' . substr($clean, -4);
         }
         return self::partialGeneric($mersis);
+    }
+
+    private static function partialIp(string $ip): string
+    {
+        $parts = explode('.', $ip);
+        if (count($parts) === 4) {
+            return $parts[0] . '.' . $parts[1] . '.*.*';
+        }
+        return self::partialGeneric($ip);
+    }
+
+    private static function partialLegalNumber(string $val): string
+    {
+        if (preg_match('/(\d{4})[\/-](\d+)/', $val, $m)) {
+            return $m[1] . '/****';
+        }
+        return self::partialGeneric($val);
+    }
+
+    private static function partialAddress(string $addr): string
+    {
+        $len = mb_strlen($addr, 'UTF-8');
+        if ($len <= 10) {
+            return '***';
+        }
+        return mb_substr($addr, 0, 8, 'UTF-8') . '... [Adres Gizlendi]';
     }
 
     private static function partialGeneric(string $value): string

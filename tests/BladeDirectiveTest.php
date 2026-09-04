@@ -26,4 +26,14 @@ class BladeDirectiveTest extends OrchestraTestCase
         $renderedPartial = Blade::render('@redaktePartial($val)', ['val' => 'TCKN: 43650391326']);
         $this->assertStringContainsString('TCKN: 436*****326', $renderedPartial);
     }
+
+    public function test_blade_directive_escapes_html_and_prevents_xss(): void
+    {
+        $payload = '<script>alert("XSS")</script> TCKN: 43650391326';
+        $rendered = Blade::render('@redakte($val)', ['val' => $payload]);
+
+        $this->assertStringNotContainsString('<script>', $rendered);
+        $this->assertStringContainsString('&lt;script&gt;', $rendered);
+        $this->assertStringContainsString('[TCKN_1]', $rendered);
+    }
 }

@@ -89,7 +89,8 @@ class NameDictionary
 
         $this->customNames = [];
         if ($this->registry !== null) {
-            $custom = $this->registry->get('custom_names', []);
+            $nameConfig = $this->registry->getNameRedactionConfig();
+            $custom = $nameConfig['custom_names'] ?? $this->registry->get('custom_names', []);
             if (is_array($custom)) {
                 foreach ($custom as $name) {
                     if (is_string($name) && trim($name) !== '') {

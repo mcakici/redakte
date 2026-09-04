@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Redakte;
 
+use InvalidArgumentException;
+use Redakte\Policy\RedactionPolicy;
+use Redakte\Token\RedactionSession;
+
 /**
  * Redaksiyon çalışma seçenekleri
  */
 final readonly class RedactionOptions
 {
     public MaskStrategy $strategy;
+    public RedactionPolicy $policy;
 
     /**
      * @param string $mode 'redacted' veya 'mask' (varsayılan 'redacted')
@@ -18,6 +23,11 @@ final readonly class RedactionOptions
      * @param bool $redactNames İsim-soyisim / rol / unvan tespiti aktif olsun mu
      * @param bool $checkHumanReview İnsan incelemesi gerektiren kelimeler kontrol edilsin mi
      * @param MaskStrategy|string $strategy Maskeleme stratejisi ('tag', 'partial', 'asterisk', 'label')
+     * @param RedactionPolicy|string $policy Redaksiyon güvenlik politikası ('strict', 'balanced', 'validated_only', 'logs')
+     * @param string $tokenFormat 'namespaced' (⟦RDT:xxxx:ENTITY:idx⟧) veya 'legacy' ([ENTITY_idx])
+     * @param RedactionSession|null $session Çok sayfalı/oturum bazlı token eşleme oturumu
+     * @param bool $strictMode Bilinmeyen tür veya seçeneklerde hata fırlatılsın mı
+     * @throws InvalidArgumentException
      */
     public function __construct(
         public string $mode = 'redacted',
@@ -26,10 +36,22 @@ final readonly class RedactionOptions
         public bool $redactNames = true,
         public bool $checkHumanReview = true,
         MaskStrategy|string $strategy = MaskStrategy::TAG,
+        RedactionPolicy|string $policy = RedactionPolicy::BALANCED,
+        public string $tokenFormat = 'legacy',
+        public ?RedactionSession $session = null,
+        public bool $strictMode = false,
     ) {
-        $this->strategy = is_string($strategy)
-            ? (MaskStrategy::tryFrom(strtolower($strategy)) ?? MaskStrategy::TAG)
-            : $strategy;
+        if (is_string($strategy)) {
+            $parsedStrategy = MaskStrategy::tryFrom(strtolower($strategy));
+            if ($parsedStrategy === null) {
+                throw new InvalidArgumentException(sprintf('Geçersiz maskeleme stratejisi: "%s". İzin verilenler: tag, partial, asterisk, label.', $strategy));
+            }
+            $this->strategy = $parsedStrategy;
+        } else {
+            $this->strategy = $strategy;
+        }
+
+        $this->policy = is_string($policy) ? RedactionPolicy::fromString($policy) : $policy;
     }
 
     public static function create(): self

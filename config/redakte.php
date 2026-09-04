@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 return [
     'policy_id' => 'legal_tr_v1',
-    'policy_version' => '2026.03',
+    'policy_version' => '1.0.1',
 
     /**
      * Entity türleri — kodda tanımlayıcı ve Türkçe rapor etiketi
@@ -30,7 +30,18 @@ return [
         'ESAS_NO' => ['label' => 'esas no', 'label_plural' => 'esas no'],
         'KARAR_NO' => ['label' => 'karar no', 'label_plural' => 'karar no'],
         'DOSYA_NO' => ['label' => 'dosya no', 'label_plural' => 'dosya no'],
+        'IP_ADRESI' => ['label' => 'IP adresi', 'label_plural' => 'IP adresi'],
     ],
+
+    /**
+     * Varsayılan güvenlik ve doğrulama politikası: 'balanced' | 'strict' | 'validated_only' | 'logs'
+     */
+    'policy' => 'balanced',
+
+    /**
+     * Token formatı: 'legacy' ([TCKN_1]) veya 'namespaced' (⟦RDT:xxxx:TCKN:1⟧)
+     */
+    'token_format' => 'legacy',
 
     /**
      * Varsayılan maskeleme stratejisi: 'tag' | 'partial' | 'asterisk' | 'label'

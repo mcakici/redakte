@@ -25,9 +25,36 @@ final readonly class RedactionSpan
     }
 
     /**
+     * Güvenli dizi formatı (hassas original_value içermez).
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array
+    {
+        return $this->toSafeArray();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSafeArray(): array
+    {
+        return [
+            'start_offset' => $this->startOffset,
+            'end_offset' => $this->endOffset,
+            'entity_type' => $this->entityType,
+            'replacement' => $this->replacement,
+            'confidence' => $this->confidence,
+            'source' => $this->source,
+        ];
+    }
+
+    /**
+     * Orijinal hassas değeri içeren açık dizi formatı.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSensitiveArray(): array
     {
         return [
             'start_offset' => $this->startOffset,

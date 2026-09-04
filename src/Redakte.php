@@ -126,6 +126,14 @@ class Redakte
     }
 
     /**
+     * Yeni bir çok parçalı redaksiyon oturumu başlatır (P2-04).
+     */
+    public static function session(?string $sessionId = null): \Redakte\Token\RedactionSession
+    {
+        return self::instance()->session($sessionId);
+    }
+
+    /**
      * Token içeren bir metni (örneğin LLM yanıtını) token haritası ile çözer.
      */
     public static function unmask(string $text, RedactionMap|array $map): string

@@ -4,98 +4,54 @@ declare(strict_types=1);
 
 namespace Redakte;
 
+use Redakte\Policy\RedactionPolicy;
 use Redakte\Redactors\ModelIdentityRedactor;
 use Redakte\Redactors\NameRedactor;
+use Redakte\Token\RedactionSession;
 
 /**
  * Redakte paketinin ana orkestrasyon ve giriş kapısı (Gateway / Manager) sınıfı.
  *
- * Tüm redaksiyon akışını (İsim-soyisim, TCKN, VKN, IBAN, telefon, e-posta vb.)
- * koordine eder ve nihai RedactionResult nesnesini üretir.
+ * Tüm redaksiyon akışını koordine eder ve nihai RedactionResult nesnesini üretir.
  */
 class Redactor
 {
     public function __construct(
         private RedactionService $service,
-        private NameRedactor $nameRedactor,
-        private RedactionValidator $validator,
-        private ReportSummaryBuilder $reportBuilder,
+        private ?NameRedactor $nameRedactor = null,
+        private ?RedactionValidator $validator = null,
+        private ?ReportSummaryBuilder $reportBuilder = null,
         private ?ModelIdentityRedactor $modelIdentityRedactor = null,
     ) {
         $this->modelIdentityRedactor ??= new ModelIdentityRedactor();
     }
 
     /**
-     * Metni tarayarak hassas kişisel verileri redakte eder.
+     * Metni tarayarak hassas kişisel verileri tek bir koordinat sisteminde redakte eder (P0-02).
      *
      * @param string $text Redakte edilecek ham metin
      * @param RedactionOptions|array<string, mixed>|null $options Ayarlar
      */
     public function redact(string $text, RedactionOptions|array|null $options = null): RedactionResult
     {
-        $options = $this->resolveOptions($options);
-        $map = new RedactionMap();
+        $resolvedOptions = $this->resolveOptions($options);
 
-        $nameResult = ['text' => $text, 'replacementsByType' => []];
-        $textForPatterns = $text;
-        $nameToIndex = [];
-        $nameCounter = 0;
-        $nameSpans = [];
+        $result = $this->service->redact($text, $resolvedOptions);
 
-        // 1. Aşama: İsim-Soyisim ve Rol redaksiyonu (aktifse)
-        if ($options->redactNames && ($options->entityTypes === null || in_array('KISI', $options->entityTypes, true))) {
-            $nameResult = $this->nameRedactor->redact(
-                text: $text,
-                nameToIndex: $nameToIndex,
-                counter: $nameCounter,
-                strategy: $options->strategy,
-                map: $map,
-                spans: $nameSpans,
-            );
-            $textForPatterns = $nameResult['text'];
+        // İkinci geçiş ve sızıntı denetimi (aktifse)
+        if ($resolvedOptions->runValidator && $this->validator !== null) {
+            $result = $this->validator->validate($text, $result, $resolvedOptions);
         }
 
-        // 2. Aşama: Regex desenleri (TCKN, VKN, IBAN, Telefon, E-posta, Plaka, Kredi Kartı vb.)
-        $result = $this->service->redact($textForPatterns, $options, $map);
+        return $result;
+    }
 
-        // Span listelerini başlangıç ofsetine göre birleştir
-        $mergedSpans = array_merge($nameSpans, $result->spans);
-        usort($mergedSpans, fn (RedactionSpan $a, RedactionSpan $b) => $a->startOffset <=> $b->startOffset);
-
-        // Değişiklik sayılarını birleştir
-        $mergedReplacements = $result->replacementsByType;
-        foreach ($nameResult['replacementsByType'] as $type => $count) {
-            if ($count > 0) {
-                $mergedReplacements[$type] = ($mergedReplacements[$type] ?? 0) + $count;
-            }
-        }
-
-        $reportSummary = $this->reportBuilder->build($mergedReplacements);
-        $appliedRules = $result->appliedRules;
-        if (($nameResult['replacementsByType']['KISI'] ?? 0) > 0) {
-            $appliedRules[] = 'name_and_role_patterns';
-        }
-
-        $combinedResult = new RedactionResult(
-            spans: $mergedSpans,
-            redactedText: $result->redactedText,
-            replacementsByType: $mergedReplacements,
-            reportSummary: $reportSummary,
-            riskLevel: $result->riskLevel,
-            warnings: $result->warnings,
-            policyId: $result->policyId,
-            policyVersion: $result->policyVersion,
-            appliedRules: array_values(array_unique($appliedRules)),
-            requiresHumanReview: $result->requiresHumanReview,
-            map: $map,
-        );
-
-        // 3. Aşama: İkinci geçiş ve sızıntı denetimi
-        if ($options->runValidator) {
-            $combinedResult = $this->validator->validate($text, $combinedResult);
-        }
-
-        return $combinedResult;
+    /**
+     * Yeni bir çok parçalı/oturum bazlı redaksiyon oturumu başlatır (P2-04).
+     */
+    public function session(?string $sessionId = null): RedactionSession
+    {
+        return RedactionSession::create($sessionId);
     }
 
     /**
@@ -120,6 +76,10 @@ class Redactor
             redactNames: $resolved->redactNames,
             checkHumanReview: $resolved->checkHumanReview,
             strategy: MaskStrategy::PARTIAL,
+            policy: $resolved->policy,
+            tokenFormat: $resolved->tokenFormat,
+            session: $resolved->session,
+            strictMode: $resolved->strictMode,
         );
 
         return $this->redact($text, $partialOptions)->redactedText;
@@ -140,6 +100,10 @@ class Redactor
             redactNames: $resolved->redactNames,
             checkHumanReview: $resolved->checkHumanReview,
             strategy: MaskStrategy::TAG,
+            policy: $resolved->policy,
+            tokenFormat: $resolved->tokenFormat,
+            session: $resolved->session,
+            strictMode: $resolved->strictMode,
         );
 
         $result = $this->redact($text, $tagOptions);
@@ -166,7 +130,7 @@ class Redactor
     }
 
     /**
-     * Yapay zeka model kimliği sızıntılarını temizler
+     * Yapay zeka model kimliği sızıntılarını temizler (ayrık yardımcı katman)
      *
      * @return array{text: string, replaced: int}
      */
@@ -192,9 +156,13 @@ class Redactor
                 redactNames: $options['names'] ?? true,
                 checkHumanReview: $options['human_review'] ?? true,
                 strategy: $options['strategy'] ?? MaskStrategy::TAG,
+                policy: $options['policy'] ?? RedactionPolicy::STRICT,
+                tokenFormat: $options['token_format'] ?? 'legacy',
+                session: $options['session'] ?? null,
+                strictMode: $options['strict'] ?? false,
             );
         }
 
-        return new RedactionOptions();
+        return new RedactionOptions(tokenFormat: 'legacy');
     }
 }
