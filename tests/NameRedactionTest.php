@@ -58,4 +58,43 @@ class NameRedactionTest extends TestCase
         $this->assertStringContainsString('[KISI_1]', $result->redactedText);
         $this->assertStringNotContainsString('[KISI_2]', $result->redactedText);
     }
+
+    public function test_gazetteer_standalone_names(): void
+    {
+        $text = 'Toplantıya Ali Yılmaz ve Ebru Can Güler katıldı.';
+        $result = $this->redactor->redact($text);
+
+        $this->assertStringContainsString('[KISI_1]', $result->redactedText);
+        $this->assertStringContainsString('[KISI_2]', $result->redactedText);
+        $this->assertStringNotContainsString('Ali Yılmaz', $result->redactedText);
+        $this->assertStringNotContainsString('Ebru Can Güler', $result->redactedText);
+    }
+
+    public function test_three_word_name_and_suffix(): void
+    {
+        $text = "Pınar İpek Parlak'a tebligat yapılmıştır.";
+        $result = $this->redactor->redact($text);
+
+        $this->assertStringContainsString("[KISI_1]'a tebligat yapılmıştır.", $result->redactedText);
+        $this->assertStringNotContainsString('Pınar İpek Parlak', $result->redactedText);
+    }
+
+    public function test_institution_negative_case(): void
+    {
+        $text = 'Mehmet Akif Ersoy Üniversitesi ve İstanbul Üniversitesi ortak karar aldı.';
+        $result = $this->redactor->redact($text);
+
+        // Üniversite isimleri kişi adı sanılıp bozulmamalıdır
+        $this->assertStringContainsString('Mehmet Akif Ersoy Üniversitesi', $result->redactedText);
+        $this->assertStringContainsString('İstanbul Üniversitesi', $result->redactedText);
+    }
+
+    public function test_partial_masking_three_word_name(): void
+    {
+        $text = "Pınar İpek Parlak ile görüştük.";
+        $partial = $this->redactor->partial($text);
+
+        $this->assertStringContainsString('P**** İ*** P***** ile görüştük.', $partial);
+        $this->assertStringNotContainsString('Pınar İpek Parlak', $partial);
+    }
 }

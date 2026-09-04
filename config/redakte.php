@@ -125,6 +125,10 @@ return [
      */
     'name_redaction' => [
         'enabled' => true,
+        // NVİ / TÜİK isim sözlüğü ile cümlenin her yerindeki yalın isimlerin tespiti (Örn: Pınar İpek Parlak)
+        'gazetteer' => true,
+        // Sözlüğe eklenecek özel / kurumunuza özgü adlar
+        'custom_names' => [],
         // Rol, etiket ve unvan kalıpları
         'roles' => [
             'Davacı', 'Davalı', 'Müşteki', 'Sanık', 'Şüpheli', 'Mağdur', 'Katılan',

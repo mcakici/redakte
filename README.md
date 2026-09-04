@@ -21,11 +21,12 @@
 - **Telefon Numaraları:** 
   - Cep telefonları (`+90 5xx`, `05xx`, `5xx`, boşluklu, parantezli ve bitişik tüm biçimler)
   - Sabit / Şehirlerarası hatlar (`0212`, `0312`, `+90 2xx/3xx/4xx`, `0090...`)
-- **İsim ve Soyisim Tespiti:**
+- **İsim ve Soyisim Tespiti (NVİ Sözlük & Bağlam Destekli):**
+  - **NVİ / TÜİK İsim Sözlüğü (Gazetteer):** Cümlenin neresinde geçerse geçsin (unvansız ve yalın halde dahi) *Pınar İpek Parlak*, *Ebru Can Güler*, *Ali Yılmaz* gibi 2, 3 ve 4 kelimeli kişi adlarını O(1) hash aramayla mikrosaniyede tespit eder.
   - Hukuki/bağlamsal roller (*Davacı, Davalı, Sanık, Müşteki, Şüpheli, Mağdur, Tanık, Müvekkil, Kiracı, Borçlu, Alacaklı vb.*)
   - Unvan ve hitaplar (*Av., Avukat, Hakim, Savcı, Dr., Prof. Dr., Sayın vb.*)
   - Etiket ve form alanları (*Adı Soyadı:, İsim:, İmza: vb.*)
-  - İsim eklerinin ve yönelme durumlarının korunması (*"kiracı Mehmet Kaya'ya" -> "kiracı [KISI_1]'ya"*)
+  - İsim eklerinin ve yönelme durumlarının korunması (*"Pınar İpek Parlak'a" -> "[KISI_1]'a"*)
 - **E-Posta & Araç Plakası:** RFC uyumlu e-postalar ve Türkiye araç plakaları.
 - **🤖 LLM / Yapay Zeka Çift Yönlü Maskeleme (Reversible / De-anonymize):** Prompt'u OpenAI/Claude'a göndermeden önce maskeleme, gelen yanıttaki etiketleri otomatik orijinal değerlere geri takas etme.
 - **🎭 4 Farklı Maskeleme Stratejisi:**

@@ -9,20 +9,26 @@ use Redakte\PatternRegistry;
 use Redakte\RedactionMap;
 use Redakte\RedactionSpan;
 use Redakte\Support\Masker;
+use Redakte\Support\NameDictionary;
 
 /**
- * Rol, unvan, etiket ve bağlamsal kalıplara göre isim-soyisim tespiti ve redaksiyonu.
- * Metin sırasına göre indeksleme ve ek koruma (örn. Mehmet Kaya'ya -> [KISI_1]'ya) sağlar.
+ * Rol, unvan, etiket kalıpları ve NVİ/TÜİK İsim Sözlüğü (Gazetteer) desteğiyle
+ * metindeki tüm kişi isimlerini (örneğin "Pınar İpek Parlak", "Ali Yılmaz")
+ * unvan şartı olmaksızın, mikrosaniye hızında tespit ve redakte eder.
  */
 final class NameRedactor
 {
     /** Türkçe ad-soyad: 2-4 kelime, her kelime büyük harfle başlayan */
     private const NAME_REGEX = '(?:\p{Lu}\p{L}+(?:\s+\p{Lu}\p{L}+){1,3})';
 
+    private NameDictionary $dictionary;
+
     public function __construct(
         private ?PatternRegistry $registry = null,
+        ?NameDictionary $dictionary = null,
     ) {
         $this->registry ??= new PatternRegistry();
+        $this->dictionary = $dictionary ?? new NameDictionary($this->registry);
     }
 
     /**
@@ -43,9 +49,10 @@ final class NameRedactor
         ?RedactionMap $map = null,
         array &$spans = [],
     ): array {
-        $patterns = $this->buildPatterns();
         $candidates = [];
 
+        // 1. Aşama: Bağlamsal kalıplar (Davacı, Davalı, Sayın, Av., Adı Soyadı: vb.)
+        $patterns = $this->buildPatterns();
         foreach ($patterns as $regex) {
             if (preg_match_all($regex, $text, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === false) {
                 continue;
@@ -72,14 +79,27 @@ final class NameRedactor
                     'name' => $name,
                     'suffix' => $suffix,
                     'length' => strlen($fullMatch),
+                    'priority' => 10, // Bağlamsal kalıplar öncelikli
                 ];
             }
         }
 
-        // Metindeki başlangıç sırasına göre sırala
-        usort($candidates, fn (array $a, array $b) => $a['start'] <=> $b['start']);
+        // 2. Aşama: NVİ İsim Sözlüğü (Gazetteer) ile unvansız yalın isim tespiti
+        // (Örn: "Toplantıya Pınar İpek Parlak katıldı", "Ali Yılmaz konuştu")
+        if ($this->isGazetteerEnabled()) {
+            $this->scanGazetteerCandidates($text, $candidates);
+        }
 
-        // Çakışan adayları filtrele
+        // Metindeki başlangıç sırasına göre sırala (aynı başlangıçta daha yüksek öncelik veya daha uzun aday öne geçer)
+        usort($candidates, function (array $a, array $b) {
+            if ($a['start'] === $b['start']) {
+                $pDiff = ($b['priority'] ?? 0) <=> ($a['priority'] ?? 0);
+                return $pDiff !== 0 ? $pDiff : ($b['length'] <=> $a['length']);
+            }
+            return $a['start'] <=> $b['start'];
+        });
+
+        // Çakışan adayları filtrele (daha önce eklenen kapsamlı adayı korur)
         $selected = [];
         foreach ($candidates as $cand) {
             $overlap = false;
@@ -125,7 +145,7 @@ final class NameRedactor
         }
         unset($item);
 
-        // Sondan başa değiştir
+        // Sondan başa değiştir (karakter ofsetlerinin kaymasını önlemek için)
         usort($selected, fn (array $a, array $b) => $b['start'] <=> $a['start']);
         foreach ($selected as $item) {
             $text = substr_replace($text, $item['replacement'], $item['start'], $item['length']);
@@ -138,11 +158,109 @@ final class NameRedactor
     }
 
     /**
+     * NVİ/TÜİK İsim Sözlüğü ile cümlenin herhangi bir yerindeki yalın ad-soyadları tarar
+     *
+     * @param list<array<string, mixed>> &$candidates
+     */
+    private function scanGazetteerCandidates(string $text, array &$candidates): void
+    {
+        if (preg_match_all('/\b\p{Lu}\p{L}*(?:[\'\x{2019}][\p{L}]+)?\b/u', $text, $matches, PREG_OFFSET_CAPTURE) === false) {
+            return;
+        }
+
+        $words = [];
+        foreach ($matches[0] as $m) {
+            $raw = $m[0];
+            $clean = preg_replace('/[\'\x{2019}][\p{L}]+$/u', '', $raw);
+            $words[] = [
+                'raw' => $raw,
+                'clean' => $clean,
+                'offset' => $m[1],
+                'len' => strlen($raw),
+                'clean_len' => strlen($clean),
+                'suffix' => substr($raw, strlen($clean)),
+            ];
+        }
+
+        $count = count($words);
+
+        for ($i = 0; $i < $count; $i++) {
+            $w = $words[$i];
+            if ($this->dictionary->isFirstName($w['clean'])) {
+                $nameWords = [$w['clean']];
+                $lastWord = $w;
+                $j = $i + 1;
+
+                while ($j < $count && ($j - $i) <= 3) {
+                    $nextW = $words[$j];
+                    $between = substr($text, $lastWord['offset'] + $lastWord['len'], $nextW['offset'] - ($lastWord['offset'] + $lastWord['len']));
+                    if ($between !== ' ') {
+                        break;
+                    }
+                    $nameWords[] = $nextW['clean'];
+                    $lastWord = $nextW;
+                    $j++;
+                }
+
+                if (count($nameWords) >= 2) {
+                    $fullStart = $w['offset'];
+                    $fullEnd = $lastWord['offset'] + $lastWord['len'];
+                    $fullMatch = substr($text, $fullStart, $fullEnd - $fullStart);
+                    $cleanName = substr($text, $fullStart, ($lastWord['offset'] + $lastWord['clean_len']) - $fullStart);
+                    $suffix = $lastWord['suffix'];
+
+                    if ($this->isExcludedName($cleanName)) {
+                        continue;
+                    }
+
+                    // Aday içinde veya hemen sonrasında kurum niteleyicisi var mı?
+                    $hasInstitution = false;
+                    foreach ($nameWords as $nw) {
+                        if ($this->dictionary->isInstitutionWord($nw)) {
+                            $hasInstitution = true;
+                            break;
+                        }
+                    }
+                    if ($hasInstitution) {
+                        continue;
+                    }
+
+                    $afterOffset = $fullEnd;
+                    $afterChunk = substr($text, $afterOffset, 40);
+                    if (preg_match('/^\s+(\p{Lu}\p{L}+)/u', $afterChunk, $afterMatch)) {
+                        if ($this->dictionary->isInstitutionWord($afterMatch[1])) {
+                            continue;
+                        }
+                    }
+
+                    $candidates[] = [
+                        'start' => $fullStart,
+                        'end' => $fullEnd,
+                        'prefix' => '',
+                        'name' => $cleanName,
+                        'suffix' => $suffix,
+                        'length' => strlen($fullMatch),
+                        'priority' => 5,
+                    ];
+
+                    $i = $j - 1;
+                }
+            }
+        }
+    }
+
+    private function isGazetteerEnabled(): bool
+    {
+        $config = $this->registry?->getNameRedactionConfig() ?? [];
+        return (bool) ($config['gazetteer'] ?? true);
+    }
+
+    /**
      * @return list<string>
      */
     private function buildPatterns(): array
     {
-        $config = $this->registry->getNameRedactionConfig();
+        $config = $this->registry?->getNameRedactionConfig() ?? [];
         $roles = $config['roles'] ?? [
             'Davacı', 'Davalı', 'Müşteki', 'Sanık', 'Şüpheli', 'Mağdur', 'Katılan',
             'Müdahil', 'Tanık', 'Mirasçı', 'Müvekkil', 'Borçlu', 'Alacaklı',
