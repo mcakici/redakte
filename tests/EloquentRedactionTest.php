@@ -34,6 +34,11 @@ class EloquentRedactionTest extends OrchestraTestCase
         ];
     }
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('redakte.token_format', 'legacy');
+    }
+
     public function test_eloquent_dynamic_redacted_accessor(): void
     {
         $model = new DummyDecisionModel([

@@ -13,7 +13,7 @@ class ConfigMergeTest extends TestCase
     public function test_partial_config_does_not_wipe_default_patterns(): void
     {
         // Yalnızca policy_id override edildiğinde varsayılan tespitler (TCKN vb.) çalışmaya devam etmeli (P0-03)
-        $customRedactor = Redakte::create(['policy_id' => 'custom_policy']);
+        $customRedactor = Redakte::create(['policy_id' => 'custom_policy', 'token_format' => 'legacy']);
 
         $text = 'Müvekkil TCKN: 43650391326 olup IBAN: TR33 0006 1005 1978 6457 8413 26';
         $result = $customRedactor->redact($text);
@@ -28,6 +28,7 @@ class ConfigMergeTest extends TestCase
     {
         // name_redaction.custom_names altındaki özel adlar tespit edilmeli (P0-04)
         $customRedactor = Redakte::create([
+            'token_format' => 'legacy',
             'name_redaction' => [
                 'custom_names' => ['Zartuk', 'Bortuk'],
             ],

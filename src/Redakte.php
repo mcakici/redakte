@@ -85,6 +85,7 @@ class Redakte
             validator: $validator,
             reportBuilder: $reportBuilder,
             modelIdentityRedactor: $modelIdentityRedactor,
+            registry: $registry,
         );
     }
 

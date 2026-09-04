@@ -62,6 +62,7 @@ class RedakteServiceProvider extends ServiceProvider
                 validator: $app->make(RedactionValidator::class),
                 reportBuilder: $app->make(ReportSummaryBuilder::class),
                 modelIdentityRedactor: $app->make(ModelIdentityRedactor::class),
+                registry: $app->make(PatternRegistry::class),
             );
         });
 

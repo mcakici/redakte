@@ -22,8 +22,10 @@ class Redactor
         private ?RedactionValidator $validator = null,
         private ?ReportSummaryBuilder $reportBuilder = null,
         private ?ModelIdentityRedactor $modelIdentityRedactor = null,
+        private ?PatternRegistry $registry = null,
     ) {
         $this->modelIdentityRedactor ??= new ModelIdentityRedactor();
+        $this->registry ??= $this->service->getRegistry();
     }
 
     /**
@@ -140,29 +142,10 @@ class Redactor
     }
 
     /**
-     * Seçenekleri normalize eder
+     * Seçenekleri normalize ve hiyerarşik olarak valide eder
      */
     private function resolveOptions(RedactionOptions|array|null $options): RedactionOptions
     {
-        if ($options instanceof RedactionOptions) {
-            return $options;
-        }
-
-        if (is_array($options)) {
-            return new RedactionOptions(
-                mode: $options['mode'] ?? 'redacted',
-                entityTypes: $options['only'] ?? $options['entity_types'] ?? null,
-                runValidator: $options['validator'] ?? true,
-                redactNames: $options['names'] ?? true,
-                checkHumanReview: $options['human_review'] ?? true,
-                strategy: $options['strategy'] ?? MaskStrategy::TAG,
-                policy: $options['policy'] ?? RedactionPolicy::STRICT,
-                tokenFormat: $options['token_format'] ?? 'legacy',
-                session: $options['session'] ?? null,
-                strictMode: $options['strict'] ?? false,
-            );
-        }
-
-        return new RedactionOptions(tokenFormat: 'legacy');
+        return OptionsFactory::create($options, $this->registry ?? $this->service->getRegistry());
     }
 }

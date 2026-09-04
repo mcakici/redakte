@@ -73,7 +73,7 @@ final class PlateDetector implements DetectorInterface
                 normalizedValue: $canonical,
                 confidence: $confidence,
                 ruleId: 'PLAKA_CLASSIC',
-                validationStatus: 'valid',
+                validationStatus: 'not_checked',
                 evidences: $evidences,
                 priority: 60,
             );

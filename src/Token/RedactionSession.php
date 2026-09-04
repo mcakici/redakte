@@ -56,6 +56,7 @@ final class RedactionSession
         string $originalValue,
         string $originalTextContext = '',
         bool $legacyFormat = false,
+        bool $storeInMap = true,
     ): array {
         if (isset($this->canonicalToToken[$entityType][$canonicalValue])) {
             return [
@@ -65,13 +66,15 @@ final class RedactionSession
         }
 
         $idx = ($this->entityCounters[$entityType] ?? 0) + 1;
+        $token = $this->tokenFactory->ensureNoCollision($originalTextContext, $entityType, $idx, $legacyFormat);
+
         $this->entityCounters[$entityType] = $idx;
         $this->canonicalToIndex[$entityType][$canonicalValue] = $idx;
-
-        $token = $this->tokenFactory->ensureNoCollision($originalTextContext, $entityType, $idx, $legacyFormat);
         $this->canonicalToToken[$entityType][$canonicalValue] = $token;
 
-        $this->map->add($token, $originalValue, $entityType);
+        if ($storeInMap) {
+            $this->map->add($token, $originalValue, $entityType);
+        }
 
         return [
             'token' => $token,

@@ -25,8 +25,8 @@ final class TcknDetector implements DetectorInterface
         $validator = $this->validator ?? new TcknChecksumValidator();
         $detections = [];
 
-        // 11 haneli bitişik veya gruplu adaylar (Örn: 12345678901, 123 456 789 01, 123-456-789-01)
-        $pattern = '/(?<!\d)(?:[1-9]\d{10}|[1-9]\d{2}[\s.-]\d{3}[\s.-]\d{3}[\s.-]\d{2})(?!\d)/u';
+        // 11 haneli bitişik veya gruplu adaylar (Örn: 12345678901, 123 456 789 01, 01234567890)
+        $pattern = '/(?<!\d)(?:\d{11}|\d{3}[\s.-]\d{3}[\s.-]\d{3}[\s.-]\d{2})(?!\d)/u';
 
         if (preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === false) {
             return [];

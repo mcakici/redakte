@@ -88,6 +88,7 @@ class RedactionService
         }
 
         $normalized = NormalizedText::create($text, $options->strictMode);
+        $normText = $normalized->getNormalizedText();
         $excludeRanges = $this->computeExcludeRanges($text);
 
         $context = new DetectionContext(
@@ -98,12 +99,28 @@ class RedactionService
             excludeRanges: $excludeRanges,
         );
 
-        // 1. Aşama: DETECT — Bütün dedektörler orijinal metinden aday üretir
+        // 1. Aşama: DETECT — Bütün dedektörler normalize edilmiş metinden aday üretir
         $allCandidates = [];
         foreach ($this->detectors as $detector) {
-            $candidates = $detector->detect($text, $context);
+            $candidates = $detector->detect($normText, $context);
             if (!empty($candidates)) {
-                $allCandidates = array_merge($allCandidates, $candidates);
+                foreach ($candidates as $candidate) {
+                    [$origStart, $origEnd] = $normalized->mapSpanToOriginal($candidate->startOffset, $candidate->endOffset);
+                    $origValue = substr($text, $origStart, $origEnd - $origStart);
+
+                    $allCandidates[] = new Detection(
+                        startOffset: $origStart,
+                        endOffset: $origEnd,
+                        entityType: $candidate->entityType,
+                        originalValue: $origValue,
+                        normalizedValue: $candidate->normalizedValue,
+                        confidence: $candidate->confidence,
+                        ruleId: $candidate->ruleId,
+                        validationStatus: $candidate->validationStatus,
+                        evidences: $candidate->evidences,
+                        priority: $candidate->priority,
+                    );
+                }
             }
         }
 
@@ -190,5 +207,10 @@ class RedactionService
             $byType[$s->entityType] = ($byType[$s->entityType] ?? 0) + 1;
         }
         return $byType;
+    }
+
+    public function getRegistry(): PatternRegistry
+    {
+        return $this->registry;
     }
 }

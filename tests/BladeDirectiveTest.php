@@ -17,6 +17,11 @@ class BladeDirectiveTest extends OrchestraTestCase
         ];
     }
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('redakte.token_format', 'legacy');
+    }
+
     public function test_blade_directives_render(): void
     {
         $rendered = Blade::render('@redakte($val)', ['val' => 'TCKN: 43650391326']);

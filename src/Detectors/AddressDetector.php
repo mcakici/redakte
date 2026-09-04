@@ -27,7 +27,14 @@ final class AddressDetector implements DetectorInterface
                 $start = (int) $match['address'][1];
                 $end = $start + strlen($rawAddress);
 
-                if ($rawAddress === '' || $context->overlapsExclude($start, $end)) {
+                // Satırda başlayan başka bir veri alanını (TCKN, VKN, Telefon vb.) yutmasını engelle
+                if (preg_match('/\b(?:TCKN|T\.?C\.?|VKN|Vergi|Tel(?:efon)?|GSM|E-?posta|IBAN|MERS[İI]S|Dosya\s*No|Esas\s*No)\s*[:\-\/]/ui', $rawAddress, $cutMatch, PREG_OFFSET_CAPTURE)) {
+                    $cutPos = (int) $cutMatch[0][1];
+                    $rawAddress = rtrim(substr($rawAddress, 0, $cutPos), " \t,.-/");
+                    $end = $start + strlen($rawAddress);
+                }
+
+                if ($rawAddress === '' || strlen($rawAddress) < 5 || $context->overlapsExclude($start, $end)) {
                     continue;
                 }
 
@@ -39,7 +46,7 @@ final class AddressDetector implements DetectorInterface
                     normalizedValue: $rawAddress,
                     confidence: 0.95,
                     ruleId: 'ADDRESS_LABEL',
-                    validationStatus: 'valid',
+                    validationStatus: 'not_checked',
                     evidences: [DetectionEvidence::LABEL_MATCH->value],
                     priority: 85,
                 );
@@ -66,7 +73,7 @@ final class AddressDetector implements DetectorInterface
                     normalizedValue: $raw,
                     confidence: 0.75,
                     ruleId: 'ADDRESS_COMPONENTS',
-                    validationStatus: 'valid',
+                    validationStatus: 'not_checked',
                     evidences: [DetectionEvidence::COMPONENT_MATCH->value],
                     priority: 60,
                 );

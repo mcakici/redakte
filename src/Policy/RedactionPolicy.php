@@ -62,9 +62,10 @@ final class RedactionPolicy
     {
         return match (strtolower(trim($policy))) {
             self::BALANCED => self::balanced(),
+            self::STRICT => self::strict(),
             self::VALIDATED_ONLY => self::validatedOnly(),
             self::LOGS => self::logs(),
-            default => self::strict(),
+            default => throw new \InvalidArgumentException(sprintf('Geçersiz redaksiyon güvenlik politikası: "%s". İzin verilenler: balanced, strict, validated_only, logs.', $policy)),
         };
     }
 }

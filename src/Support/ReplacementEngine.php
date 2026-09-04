@@ -41,14 +41,17 @@ final class ReplacementEngine
         $spans = [];
         $warnings = [];
 
+        $storeInMap = ($strategy === MaskStrategy::TAG);
+
         foreach ($detections as $d) {
-            // Oturumdan token ve indeks al
+            // Oturumdan token ve indeks al (yalnızca TAG stratejisinde haritada sakla)
             $tokenInfo = $session->getOrCreateToken(
                 entityType: $d->entityType,
                 canonicalValue: $d->normalizedValue,
                 originalValue: $d->originalValue,
                 originalTextContext: $original,
                 legacyFormat: $legacyTokenFormat,
+                storeInMap: $storeInMap,
             );
 
             $token = $tokenInfo['token'];

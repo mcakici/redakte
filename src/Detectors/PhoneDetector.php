@@ -58,8 +58,8 @@ final class PhoneDetector implements DetectorInterface
                 }
 
                 $digits = preg_replace('/\D+/', '', $raw) ?? '';
-                // 10 hane (5321234567), 11 hane (05321234567), 12 hane (905321234567), 14 hane (00905321234567)
-                if (!in_array(strlen($digits), [10, 11, 12, 14], true)) {
+                // 10 hane (5321234567), 11 hane (05321234567), 12 hane (905321234567), 13 hane (9005321234567), 14 hane (00905321234567)
+                if (!in_array(strlen($digits), [10, 11, 12, 13, 14], true)) {
                     continue;
                 }
 
@@ -94,7 +94,7 @@ final class PhoneDetector implements DetectorInterface
                     normalizedValue: $canonical,
                     confidence: max(0.4, $confidence),
                     ruleId: 'TELEFON_PARSER',
-                    validationStatus: 'valid',
+                    validationStatus: 'not_checked',
                     evidences: $evidences,
                     priority: $priority,
                 );

@@ -46,6 +46,7 @@ final class EmailDetector implements DetectorInterface
                 continue;
             }
 
+            $isValid = filter_var($trimmed, FILTER_VALIDATE_EMAIL) !== false;
             $canonical = $this->canonicalizer->canonicalize($trimmed);
 
             $detections[] = new Detection(
@@ -54,9 +55,9 @@ final class EmailDetector implements DetectorInterface
                 entityType: 'EPOSTA',
                 originalValue: $trimmed,
                 normalizedValue: $canonical,
-                confidence: 1.0,
+                confidence: $isValid ? 1.0 : 0.6,
                 ruleId: 'EPOSTA_RFC',
-                validationStatus: 'valid',
+                validationStatus: $isValid ? 'valid' : 'invalid',
                 evidences: [DetectionEvidence::FORMAT_MATCH->value],
                 priority: 70,
             );

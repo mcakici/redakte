@@ -1,8 +1,8 @@
 # Redakte - PHP & Laravel Kişisel Veri Redaksiyon ve Anonimleştirme Paketi
 
-[![Latest Version](https://img.shields.io/badge/version-v1.0.1-blue.svg?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
+[![Latest Version](https://img.shields.io/badge/version-v1.0.2-blue.svg?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-85%20passed-brightgreen.svg?style=flat-square)](#-testleri-çalıştırma)
+[![Tests](https://img.shields.io/badge/tests-98%20passed-brightgreen.svg?style=flat-square)](#-testleri-çalıştırma)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-777bb4.svg?style=flat-square)](composer.json)
 
 **Redakte**, metinlerde, hukuki belgelerde, veri tabanı modellerinde ve kullanıcı girdilerinde bulunan hassas kişisel verileri (KVKK / GDPR teknik uyumluluk süreçleri için) deterministik ve yüksek doğruluklu algoritmalarla tespit edip güvenli yer tutucularla (`⟦RDT:xxxx:TCKN:1⟧` veya `[TCKN_1]`) ya da kısmi maskeleme (`123*****890`) ile redakte eden bağımsız bir PHP & Laravel kütüphanesidir.
@@ -16,32 +16,36 @@
 
 | Entity Türü | Tespit Türü | Doğrulayıcı / Algoritma | Kısmi Maskeleme | Geri Açılabilir (Reversible) | Durum |
 |---|---|---|:---:|:---:|:---:|
-| **TCKN** | Regex + Bağlam | Mod 10/11 Checksum Algoritması | Evet | Evet | Kararlı (v1.0.1) |
-| **VKN** | Regex + Bağlam | Mod 10 Checksum (5xx dahil tüm 10 hane) | Evet | Evet | Kararlı (v1.0.1) |
-| **IBAN** | Regex + Bağlam | ISO 7064 Mod97 (26 karakter TR IBAN) | Evet | Evet | Kararlı (v1.0.1) |
-| **TELEFON** | Tokenize + Regex | 10 farklı biçim (+90, 0090, 05xx, parantezli, sabit) | Evet | Evet | Kararlı (v1.0.1) |
-| **KREDİ KARTI** | Regex + Bağlam | Luhn (Mod 10) Algoritması (13-19 hane) | Evet | Evet | Kararlı (v1.0.1) |
-| **KİŞİ ADI** | Çok Katmanlı | NVİ/TÜİK Sözlüğü + Hukuki Roller & Unvanlar | Evet | Evet | Kararlı (v1.0.1) |
-| **ADRES** | Etiket + Bileşen | Adres etiketi (`Adres:`) ve bileşenler (`Mah.`, `Cad.`) | Evet | Evet | Kararlı (v1.0.1) |
-| **MERSİS** | Regex + Bağlam | 16 haneli sicil formatı ve etiket bağlamı | Evet | Evet | Kararlı (v1.0.1) |
-| **E-POSTA** | Regex | Yaygın ve RFC uyumlu formatlar, noktalama temizliği | Evet | Evet | Kararlı (v1.0.1) |
-| **PLAKA** | Regex + Doğrulama | 01-81 il kodu doğrulaması ve Türkiye plaka formatı | Evet | Evet | Kararlı (v1.0.1) |
-| **HUKUKİ NO** | Regex + Bağlam | `ESAS_NO`, `KARAR_NO`, `DOSYA_NO` kalıpları | Evet | Evet | Kararlı (v1.0.1) |
-| **IP ADRESİ** | Regex | IPv4 adres kalıpları | Evet | Evet | Kararlı (v1.0.1) |
+| **TCKN** | Regex + Bağlam | Mod 10/11 Checksum Algoritması (0 ile başlayan adaylar dahil) | Evet | Evet | Kararlı (v1.0.2) |
+| **VKN** | Regex + Bağlam | Resmi GİB Mod 10 Checksum (5xx dahil tüm 10 haneli VKN'ler) | Evet | Evet | Kararlı (v1.0.2) |
+| **IBAN** | Regex + Bağlam | ISO 7064 Mod97 (26 karakter TR IBAN) | Evet | Evet | Kararlı (v1.0.2) |
+| **TELEFON** | Tokenize + Regex | 10 farklı biçim (+90, 0090, 05xx, parantezli, sabit, 13 hane dahil) | Evet | Evet | Kararlı (v1.0.2) |
+| **KREDİ KARTI** | Regex + Bağlam | Luhn (Mod 10) Algoritması (13-19 hane) | Evet | Evet | Kararlı (v1.0.2) |
+| **KİŞİ ADI** | Çok Katmanlı | NVİ/TÜİK Sözlüğü + Hukuki Roller & Unvanlar (`A. Yılmaz` dahil) | Evet | Evet | Kararlı (v1.0.2) |
+| **ADRES** | Etiket + Bileşen | Adres etiketi (`Adres:`) ve bileşenler (`Mah.`, `Cad.`), sınır kontrollü | Evet | Evet | Kararlı (v1.0.2) |
+| **MERSİS** | Regex + Bağlam | 16 haneli sicil formatı ve etiket bağlamı | Evet | Evet | Kararlı (v1.0.2) |
+| **E-POSTA** | Regex + Doğrulama | RFC uyumlu formatlar ve `filter_var` e-posta doğrulaması | Evet | Evet | Kararlı (v1.0.2) |
+| **PLAKA** | Regex + Doğrulama | 01-81 il kodu doğrulaması ve Türkiye plaka formatı | Evet | Evet | Kararlı (v1.0.2) |
+| **HUKUKİ NO** | Regex + Bağlam | `ESAS_NO`, `KARAR_NO`, `DOSYA_NO` (Etiketler korunur, sadece numara redakte edilir) | Evet | Evet | Kararlı (v1.0.2) |
+| **IP ADRESİ** | Regex + Doğrulama | IPv4 ve IPv6 adres kalıpları (`filter_var` doğrulama denetimli) | Evet | Evet | Kararlı (v1.0.2) |
 
 ---
 
 ## 🔒 Güvenlik Sözleşmesi (Security Contract)
 
 1. **Hassas Veri İzolasyonu (P0-01):**
-   `$result->toArray()` ve `json_encode($result)` çıktıları varsayılan olarak **asla** `token_map` veya span'lardaki `original_value` değerlerini sızdırmaz. Orijinal hassas haritaya yalnızca açık ve bilinçli olarak `$result->toSensitiveArray()` çağrılarak erişilebilir.
-2. **Tek Koordinat Alanı (P0-02):**
-   Tüm dedektörler orijinal metin üzerinde çalışır (`Detect -> Resolve -> Apply`). İsim veya numara redaksiyonundan kaynaklı hiçbir ofset kayması yaşanmaz (`substr($original, $start, $len) === $originalValue`).
-3. **Kriptografik Token & Oturum Güvenliği (P0-07):**
-   Varsayılan tokenlar rastgele oturum anahtarlarıyla (`⟦RDT:xxxx:ENTITY:idx⟧`) üretilir. Orijinal metin içinde önceden bulunan sahte yer tutucularla çakışma önlenir.
-4. **Blade XSS Koruması (P0-08):**
+   `$result->toArray()` ve `json_encode($result)` çıktıları varsayılan olarak **asla** `token_map` veya span'lardaki `original_value` değerlerini sızdırmaz. Benzer şekilde `RedactionMap::jsonSerialize()` yalnızca güvenli metadata döndürür. Orijinal hassas haritaya yalnızca açık ve bilinçli olarak `$result->toSensitiveArray()` veya `$map->toSensitiveJson()` çağrılarak erişilebilir.
+2. **Tek Koordinat Alanı ve O(1) Haritalama (P0-02):**
+   Tüm dedektörler normalize edilmiş metin üzerinde çalışır, tespit edilen tüm span'lar $O(1)$ harita tablosuyla orijinal metin koordinatlarına geri çevrilir (`Detect -> Resolve -> Apply`). NBSP, zero-width ve akıllı tırnak altında hiçbir ofset kayması yaşanmaz (`substr($original, $start, $len) === $originalValue`).
+3. **128-Bit Token & Oturum Güvenliği (P0-07):**
+   Varsayılan tokenlar en az 128-bit rastgele oturum anahtarlarıyla (`⟦RDT:xxxxxxxxxxxxxxxx:ENTITY:idx⟧`) üretilir. Orijinal metin içinde önceden bulunan sahte yer tutucularla çakışmalar deterministik olarak çözülür.
+4. **Otomatik Çapraz Oturum (Cross-Session) Engeli:**
+   `unmask()` işlemi sırasında namespaced tokenlardaki oturum kimliği ile harita oturumu eşleşmezse kütüphane otomatik olarak `UnsafeUnmaskException` fırlatır.
+5. **Tek Yönlü Strateji İzolasyonu:**
+   `PARTIAL`, `ASTERISK` ve `LABEL` stratejileri tek yönlü (irreversible) olduğu için haritada kişisel veriler biriktirilmez.
+6. **Blade XSS Koruması (P0-08):**
    `@redakte` ve `@redaktePartial` direktifleri çıktıyı otomatik olarak `e()` (HTML escaping) ile sarmalar.
-5. **Log Güvenliği (P0-09):**
+7. **Log Güvenliği (P0-09):**
    `RedakteLogProcessor`, Monolog `message`, `context` ve `extra` alanlarını kapsar; `Stringable`, `Throwable`, iç içe diziler ve döngüsel referansları güvenle temizler.
 
 ---

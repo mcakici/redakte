@@ -54,7 +54,7 @@ final class MersisDetector implements DetectorInterface
                 normalizedValue: $raw,
                 confidence: $confidence,
                 ruleId: 'MERSIS_16',
-                validationStatus: 'valid',
+                validationStatus: 'not_checked',
                 evidences: $evidences,
                 priority: $hasLabel ? 92 : 88,
             );

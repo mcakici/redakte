@@ -25,7 +25,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        $registry = new PatternRegistry();
+        $registry = new PatternRegistry(['token_format' => 'legacy']);
         $reportBuilder = new ReportSummaryBuilder($registry);
         $tcknValidator = new TcknChecksumValidator();
         $ibanValidator = new IbanMod97Validator();
@@ -49,6 +49,15 @@ abstract class TestCase extends BaseTestCase
             validator: $validator,
             reportBuilder: $reportBuilder,
             modelIdentityRedactor: $modelIdentityRedactor,
+            registry: $registry,
         );
+
+        \Redakte\Redakte::setInstance($this->redactor);
+    }
+
+    protected function tearDown(): void
+    {
+        \Redakte\Redakte::setInstance(null);
+        parent::tearDown();
     }
 }

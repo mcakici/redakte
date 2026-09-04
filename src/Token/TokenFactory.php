@@ -10,7 +10,7 @@ final class TokenFactory
 
     public function __construct(?string $sessionId = null)
     {
-        $this->sessionId = $sessionId ?? bin2hex(random_bytes(3));
+        $this->sessionId = $sessionId ?? bin2hex(random_bytes(16));
     }
 
     public function getSessionId(): string
@@ -31,15 +31,20 @@ final class TokenFactory
     }
 
     /**
-     * Orijinal metinde çakışma olmadığından emin olur, varsa yeni session ID türetir.
+     * Orijinal metinde çakışma olmadığından emin olur.
+     * Legacy formatta index'i artırarak, namespaced formatta ise yeni session ID türeterek çakışmayı çözer.
      */
-    public function ensureNoCollision(string $originalText, string $entityType, int $index, bool $legacyFormat = false): string
+    public function ensureNoCollision(string $originalText, string $entityType, int &$index, bool $legacyFormat = false): string
     {
         $token = $this->createToken($entityType, $index, $legacyFormat);
 
         $attempts = 0;
-        while (str_contains($originalText, $token) && $attempts < 10) {
-            $this->sessionId = bin2hex(random_bytes(3));
+        while ($originalText !== '' && str_contains($originalText, $token) && $attempts < 20) {
+            if ($legacyFormat) {
+                $index++;
+            } else {
+                $this->sessionId = bin2hex(random_bytes(16));
+            }
             $token = $this->createToken($entityType, $index, $legacyFormat);
             $attempts++;
         }

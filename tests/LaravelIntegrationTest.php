@@ -25,6 +25,11 @@ class LaravelIntegrationTest extends OrchestraTestCase
         ];
     }
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('redakte.token_format', 'legacy');
+    }
+
     public function test_service_provider_registers_singleton(): void
     {
         $this->assertInstanceOf(Redactor::class, $this->app->make(Redactor::class));

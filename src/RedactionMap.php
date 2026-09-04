@@ -108,11 +108,22 @@ class RedactionMap implements JsonSerializable
             return $text;
         }
 
-        // Çapraz oturum kontrolü
+        // Çapraz oturum kontrolü (açık parametre)
         if ($expectedSessionId !== null && $this->sessionId !== '' && $expectedSessionId !== $this->sessionId) {
             throw new UnsafeUnmaskException(
                 sprintf('Oturum uyuşmazlığı tespit edildi: Harita session ID (%s) ile beklenen (%s) eşleşmiyor.', $this->sessionId, $expectedSessionId)
             );
+        }
+
+        // Namespaced tokenlarda otomatik cross-session güvenlik denetimi
+        if ($this->sessionId !== '' && preg_match_all('/⟦RDT:([a-zA-Z0-9_-]+):/u', $text, $matches)) {
+            foreach ($matches[1] as $tokenSessionId) {
+                if ($tokenSessionId !== $this->sessionId) {
+                    throw new UnsafeUnmaskException(
+                        sprintf('Çapraz oturum uyuşmazlığı tespit edildi: Metindeki token session ID (%s) ile harita session ID (%s) eşleşmiyor.', $tokenSessionId, $this->sessionId)
+                    );
+                }
+            }
         }
 
         // strtr en uzun anahtarları önceleyecek şekilde C seviyesinde güvenli eşleştirme yapar
@@ -148,11 +159,29 @@ class RedactionMap implements JsonSerializable
     }
 
     /**
-     * JSON serileştirme
+     * Hassas kişisel verileri içeren dizi
+     *
+     * @return array{tokens: array<string, string>, types: array<string, string>, session_id: string}
+     */
+    public function toSensitiveArray(): array
+    {
+        return $this->toArray();
+    }
+
+    /**
+     * Hassas kişisel verileri içeren JSON çıktısı
+     */
+    public function toSensitiveJson(int $flags = 0): string
+    {
+        return json_encode($this->toSensitiveArray(), $flags | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * JSON serileştirme — varsayılan olarak yalnızca güvenli metadata döner (P0 Güvenlik)
      */
     public function jsonSerialize(): array
     {
-        return $this->toArray();
+        return $this->toSafeArray();
     }
 
     public function toJson(int $flags = 0): string

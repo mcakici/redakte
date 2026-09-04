@@ -13,7 +13,7 @@ class ReversibleRedactionTest extends TestCase
     {
         $prompt = 'Davacı Ahmet Yılmaz (TCKN: 43650391326), 0532 123 45 67 numaralı telefondan arandı.';
 
-        [$maskedPrompt, $map] = Redakte::maskForLLM($prompt);
+        [$maskedPrompt, $map] = $this->redactor->maskForLLM($prompt);
 
         $this->assertInstanceOf(RedactionMap::class, $map);
         $this->assertStringContainsString('Davacı [KISI_1]', $maskedPrompt);
@@ -26,7 +26,7 @@ class ReversibleRedactionTest extends TestCase
         $aiResponse = 'Özet: [KISI_1], [TCKN_1] kimlik numaralı olup [TELEFON_1] ile irtibat kurulmuştur.';
 
         // Yanıtı geri çöz (de-anonymize / unmask)
-        $unmasked = Redakte::unmask($aiResponse, $map);
+        $unmasked = $this->redactor->unmask($aiResponse, $map);
 
         $this->assertStringContainsString('Ahmet Yılmaz', $unmasked);
         $this->assertStringContainsString('43650391326', $unmasked);
@@ -38,7 +38,7 @@ class ReversibleRedactionTest extends TestCase
     public function test_redaction_result_unmask_direct_method(): void
     {
         $text = 'Müşteri Fatma Demir, TCKN: 43650391326';
-        $result = Redakte::redact($text);
+        $result = $this->redactor->redact($text);
 
         $this->assertNotNull($result->map);
         $this->assertTrue($result->hasReplacements());
@@ -56,8 +56,14 @@ class ReversibleRedactionTest extends TestCase
         $map->add('[TCKN_1]', '43650391326', 'TCKN');
         $map->add('[KISI_1]', 'Ali Kaya', 'KISI');
 
-        $json = $map->toJson();
-        $reconstructed = RedactionMap::fromJson($json);
+        // Varsayılan serileştirme orijinal hassas verileri sızdırmaz
+        $safeJson = json_encode($map);
+        $this->assertStringNotContainsString('43650391326', $safeJson);
+        $this->assertStringNotContainsString('Ali Kaya', $safeJson);
+
+        // Açık hassas serileştirme tam eşlemeyi korur
+        $sensitiveJson = $map->toSensitiveJson();
+        $reconstructed = RedactionMap::fromJson($sensitiveJson);
 
         $this->assertSame(2, $reconstructed->count());
         $this->assertSame('43650391326', $reconstructed->get('[TCKN_1]'));

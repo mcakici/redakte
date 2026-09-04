@@ -18,11 +18,7 @@ final class VknChecksumValidator
             return false;
         }
 
-        // 5 ile başlayan 10 basamaklı numaralar genellikle cep telefonudur (532xxxxxxx gibi)
-        // Telefon regex'i daha öncelikli olsa bile VKN kontrolünde ekstra güvenlik
-        if ($vkn[0] === '5') {
-            return false;
-        }
+
 
         $digits = array_map('intval', str_split($vkn));
         $sum = 0;

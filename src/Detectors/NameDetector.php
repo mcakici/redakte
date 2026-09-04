@@ -15,7 +15,7 @@ use Redakte\Support\NameDictionary;
 final class NameDetector implements DetectorInterface
 {
     private const NAME_WORD_REGEX = '(?:\p{Lu}\p{L}+|\p{Lu}\.)';
-    private const NAME_REGEX = '(?:\p{Lu}\p{L}+(?:\s+' . self::NAME_WORD_REGEX . '){1,3})';
+    private const NAME_REGEX = '(?:\p{Lu}(?:\p{L}+|\.)(?:\s+' . self::NAME_WORD_REGEX . '){1,3})';
 
     private NameDictionary $dictionary;
     private NameCanonicalizer $canonicalizer;
@@ -96,7 +96,7 @@ final class NameDetector implements DetectorInterface
                     normalizedValue: $canonical,
                     confidence: 0.95,
                     ruleId: 'NAME_CONTEXTUAL',
-                    validationStatus: 'valid',
+                    validationStatus: 'not_checked',
                     evidences: [DetectionEvidence::ROLE_CONTEXT->value, $evidenceType],
                     priority: $priority,
                 );
@@ -186,7 +186,7 @@ final class NameDetector implements DetectorInterface
                         normalizedValue: $canonical,
                         confidence: 0.85,
                         ruleId: 'NAME_GAZETTEER',
-                        validationStatus: 'valid',
+                        validationStatus: 'not_checked',
                         evidences: [DetectionEvidence::DICTIONARY_MATCH->value],
                         priority: 65,
                     );

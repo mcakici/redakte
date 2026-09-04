@@ -37,10 +37,14 @@ final readonly class RedactionOptions
         public bool $checkHumanReview = true,
         MaskStrategy|string $strategy = MaskStrategy::TAG,
         RedactionPolicy|string $policy = RedactionPolicy::BALANCED,
-        public string $tokenFormat = 'legacy',
+        public ?string $tokenFormat = null,
         public ?RedactionSession $session = null,
         public bool $strictMode = false,
     ) {
+        if ($tokenFormat !== null && !in_array($tokenFormat, ['namespaced', 'legacy'], true)) {
+            throw new InvalidArgumentException(sprintf('Geçersiz token formatı: "%s". İzin verilenler: namespaced, legacy.', $tokenFormat));
+        }
+
         if (is_string($strategy)) {
             $parsedStrategy = MaskStrategy::tryFrom(strtolower($strategy));
             if ($parsedStrategy === null) {
@@ -64,9 +68,9 @@ final readonly class RedactionOptions
      *
      * @param list<string> $types
      */
-    public static function only(array $types): self
+    public static function only(array $types, ?string $tokenFormat = null): self
     {
-        return new self(entityTypes: $types);
+        return new self(entityTypes: $types, tokenFormat: $tokenFormat);
     }
 
     /**

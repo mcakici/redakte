@@ -9,6 +9,18 @@ use Redakte\Redakte;
 
 class VanillaPhpTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Redakte::setInstance(Redakte::create(['token_format' => 'legacy']));
+    }
+
+    protected function tearDown(): void
+    {
+        Redakte::setInstance(null);
+        parent::tearDown();
+    }
+
     public function test_standalone_php_redaction(): void
     {
         $text = "Sayın Ahmet Yılmaz, TCKN: 43650391326 ve IBAN: TR33 0006 1005 1978 6457 8413 26";

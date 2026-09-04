@@ -78,17 +78,22 @@ final class CustomPatternDetector implements DetectorInterface
                     continue;
                 }
 
-                $isValid = $this->validate($value, $validatorName);
-
                 $evidences = [DetectionEvidence::FORMAT_MATCH->value];
-                if ($isValid) {
-                    $evidences[] = DetectionEvidence::CHECKSUM_VALID->value;
-                    $status = 'valid';
-                    $confidence = 1.0;
+
+                if ($validatorName === null) {
+                    $status = 'not_checked';
+                    $confidence = 0.85;
                 } else {
-                    $evidences[] = DetectionEvidence::CHECKSUM_INVALID->value;
-                    $status = 'invalid';
-                    $confidence = 0.6;
+                    $isValid = $this->validate($value, $validatorName);
+                    if ($isValid) {
+                        $evidences[] = DetectionEvidence::CHECKSUM_VALID->value;
+                        $status = 'valid';
+                        $confidence = 1.0;
+                    } else {
+                        $evidences[] = DetectionEvidence::CHECKSUM_INVALID->value;
+                        $status = 'invalid';
+                        $confidence = 0.6;
+                    }
                 }
 
                 $detections[] = new Detection(

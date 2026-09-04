@@ -15,7 +15,7 @@ class PhoneDetectorComprehensiveTest extends TestCase
         $text = "Bize {$phoneText} üzerinden ulaşabilirsiniz.";
         $result = Redakte::redact($text);
 
-        $this->assertStringContainsString('[TELEFON_1]', $result->redactedText, "Telefon formatı yakalanamadı: {$phoneText}");
+        $this->assertMatchesRegularExpression('/(?:\[TELEFON_1\]|⟦RDT:[a-zA-Z0-9_-]+:TELEFON:1⟧)/', $result->redactedText, "Telefon formatı yakalanamadı: {$phoneText}");
     }
 
     public static function phoneFormatsProvider(): array

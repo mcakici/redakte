@@ -68,7 +68,7 @@ class PatternRegistry
 
     public function getPolicyVersion(): string
     {
-        return $this->get('policy_version', '2026.03');
+        return $this->get('policy_version', '1.0.2');
     }
 
     /**

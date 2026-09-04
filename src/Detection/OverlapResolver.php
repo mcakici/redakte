@@ -26,10 +26,11 @@ final class OverlapResolver
         // 1. Politika filtresi
         $filtered = [];
         foreach ($candidates as $candidate) {
+            if ($policy->name === RedactionPolicy::VALIDATED_ONLY && $candidate->validationStatus !== 'valid') {
+                continue;
+            }
+
             if ($candidate->validationStatus === 'invalid') {
-                if ($policy->name === RedactionPolicy::VALIDATED_ONLY) {
-                    continue;
-                }
                 if ($policy->name === RedactionPolicy::BALANCED && !$candidate->hasEvidence(DetectionEvidence::LABEL_MATCH)) {
                     continue;
                 }

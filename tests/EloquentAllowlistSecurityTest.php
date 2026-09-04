@@ -26,6 +26,11 @@ class EloquentAllowlistSecurityTest extends OrchestraTestCase
         ];
     }
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('redakte.token_format', 'legacy');
+    }
+
     public function test_non_redactable_attribute_cannot_be_accessed_via_magic_getter(): void
     {
         $model = new RestrictedDecisionModel([

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 return [
     'policy_id' => 'legal_tr_v1',
-    'policy_version' => '1.0.1',
+    'policy_version' => '1.0.2',
 
     /**
      * Entity türleri — kodda tanımlayıcı ve Türkçe rapor etiketi
@@ -39,9 +39,9 @@ return [
     'policy' => 'balanced',
 
     /**
-     * Token formatı: 'legacy' ([TCKN_1]) veya 'namespaced' (⟦RDT:xxxx:TCKN:1⟧)
+     * Token formatı: 'namespaced' (⟦RDT:xxxx:TCKN:1⟧) veya 'legacy' ([TCKN_1])
      */
-    'token_format' => 'legacy',
+    'token_format' => 'namespaced',
 
     /**
      * Varsayılan maskeleme stratejisi: 'tag' | 'partial' | 'asterisk' | 'label'
