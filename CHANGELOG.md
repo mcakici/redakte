@@ -21,6 +21,7 @@ Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [K
 
 - Model seçenekleri, düşünme metadata uyumluluğu, kapalı varsayılan, Unicode koordinatları, tür/politika filtreleri ve kaynak eşleşmesi için regresyonlar eklendi.
 - Gerçek loopback HTTP bağlantılarıyla sentetik Ollama yanıtları, başlıklar, hata kodları, yönlendirmeler, boyut sınırları ve zaman aşımı test edildi. Bu testler gerçek model precision/recall ölçümü değildir.
+- Yeni PCRE sürümlerinde bağlamsal isim kalıplarının küçük harfli cümle devamını yutması düzeltildi; rol etiketlerinin harf duyarsız eşleşmesi ve oturumlar arası isim token tutarlılığı korundu.
 
 ## [1.0.2] - 2026-09-05
 

@@ -15,7 +15,8 @@ use Redakte\Support\NameDictionary;
 final class NameDetector implements DetectorInterface
 {
     private const NAME_WORD_REGEX = '(?:\p{Lu}\p{L}+|\p{Lu}\.)';
-    private const NAME_REGEX = '(?:\p{Lu}(?:\p{L}+|\.)(?:\s+' . self::NAME_WORD_REGEX . '){1,3})';
+    // Etiketler /i ile eşleşebilir; isimdeki Lu şartı yeni PCRE sürümlerinde de harf duyarlı kalır.
+    private const NAME_REGEX = '(?-i:\p{Lu}(?:\p{L}+|\.)(?:\s+' . self::NAME_WORD_REGEX . '){1,3})';
 
     private NameDictionary $dictionary;
     private NameCanonicalizer $canonicalizer;

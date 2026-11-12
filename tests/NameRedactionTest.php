@@ -17,6 +17,14 @@ class NameRedactionTest extends TestCase
         $this->assertStringNotContainsString('Mehmet Kaya', $result->redactedText);
     }
 
+    public function test_context_labels_are_caseless_but_following_words_do_not_join_names(): void
+    {
+        $result = $this->redactor->redact('davacı Ayşe Demir duruşmaya geldi. davalı Mehmet Kaya arandı.');
+        $this->assertSame('davacı [KISI_1] duruşmaya geldi. davalı [KISI_2] arandı.', $result->redactedText);
+        $this->assertSame('Ayşe Demir', $result->spans[0]->originalValue);
+        $this->assertSame('Mehmet Kaya', $result->spans[1]->originalValue);
+    }
+
     public function test_labeled_name_redaction(): void
     {
         $text = 'Adı Soyadı: Ahmet Yılmaz, İsim: Fatma Öz';
