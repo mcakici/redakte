@@ -68,7 +68,7 @@ class PatternRegistry
 
     public function getPolicyVersion(): string
     {
-        return $this->get('policy_version', '1.0.2');
+        return $this->get('policy_version', '1.0.3');
     }
 
     /**
@@ -143,7 +143,7 @@ class PatternRegistry
             'policy_id', 'policy_version', 'entity_types', 'default_strategy',
             'patterns', 'patterns_mode', 'name_redaction', 'exclude_patterns',
             'exclude_patterns_mode', 'human_review_keywords', 'custom_names',
-            'token_format', 'limits', 'policy',
+            'token_format', 'limits', 'policy', 'llm',
         ];
 
         if ($strictMode) {
@@ -158,10 +158,17 @@ class PatternRegistry
 
         // 1. Skaler ve üst düzey değerler
         foreach ($custom as $key => $val) {
-            if ($key === 'patterns' || $key === 'exclude_patterns' || $key === 'name_redaction') {
+            if ($key === 'patterns' || $key === 'exclude_patterns' || $key === 'name_redaction' || $key === 'llm') {
                 continue;
             }
             $result[$key] = $val;
+        }
+
+        if (array_key_exists('llm', $custom)) {
+            if (!is_array($custom['llm'])) {
+                throw new InvalidConfigurationException('llm konfigürasyonu bir dizi olmalıdır.');
+            }
+            $result['llm'] = \Redakte\Llm\LlmOptions::mergeConfig($base['llm'] ?? [], $custom['llm']);
         }
 
         // 2. patterns birleştirme (append, prepend, replace)

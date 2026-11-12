@@ -13,23 +13,23 @@ use Redakte\Exceptions\InvalidUtf8Exception;
  */
 final class NormalizedText
 {
-    /** @var list<int> Normalize edilmiş her byte pozisyonunun orijinal metindeki byte başlangıcı */
-    private array $normByteToOrigStart = [];
+    /** @var list<int>|string Her byte için başlangıç; create() kompakt little-endian uint32 kullanır. */
+    private array|string $normByteToOrigStart = [];
 
-    /** @var list<int> Normalize edilmiş her byte pozisyonunun orijinal metindeki byte bitişi */
-    private array $normByteToOrigEnd = [];
+    /** @var list<int>|string Her byte için bitiş; PHP integer dizileri büyüklüğünde bellek ayırmaz. */
+    private array|string $normByteToOrigEnd = [];
 
     /**
      * @param string $originalText Değiştirilmemiş gerçek giriş metni
      * @param string $normalizedText Arama ve tespitte kullanılan normalize metin
-     * @param list<int> $normByteToOrigStart
-     * @param list<int> $normByteToOrigEnd
+     * @param list<int>|string $normByteToOrigStart
+     * @param list<int>|string $normByteToOrigEnd
      */
     public function __construct(
         private readonly string $originalText,
         private readonly string $normalizedText,
-        array $normByteToOrigStart = [],
-        array $normByteToOrigEnd = [],
+        array|string $normByteToOrigStart = [],
+        array|string $normByteToOrigEnd = [],
     ) {
         $this->normByteToOrigStart = $normByteToOrigStart;
         $this->normByteToOrigEnd = $normByteToOrigEnd;
@@ -65,7 +65,7 @@ final class NormalizedText
         if ($safeStart >= $normLen) {
             $origStart = $origLen;
         } else {
-            $origStart = $this->normByteToOrigStart[$safeStart] ?? 0;
+            $origStart = $this->mapValue($this->normByteToOrigStart, $safeStart, 0);
         }
 
         if ($safeEnd <= 0) {
@@ -74,13 +74,25 @@ final class NormalizedText
             $origEnd = $origLen;
         } else {
             // $safeEnd indeksi aralığın dışındaki ilk byte'tır; önceki byte'ın orijinal bitişi alınır
-            $origEnd = $this->normByteToOrigEnd[$safeEnd - 1] ?? $origStart;
+            $origEnd = $this->mapValue($this->normByteToOrigEnd, $safeEnd - 1, $origStart);
         }
 
         $origStart = max(0, min($origStart, $origLen));
         $origEnd = max($origStart, min($origEnd, $origLen));
 
         return [$origStart, $origEnd];
+    }
+
+    private function mapValue(array|string $map, int $index, int $fallback): int
+    {
+        if (is_array($map)) {
+            return $map[$index] ?? $fallback;
+        }
+        $offset = $index * 4;
+        if ($offset < 0 || $offset + 4 > strlen($map)) {
+            return $fallback;
+        }
+        return unpack('Vvalue', $map, $offset)['value'];
     }
 
     /**
@@ -99,12 +111,14 @@ final class NormalizedText
         }
 
         $origLen = strlen($text);
-        $normChars = [];
-        $normByteToOrigStart = [];
-        $normByteToOrigEnd = [];
+        if ($origLen > 0xffffffff) {
+            throw new \Redakte\Exceptions\DetectionLimitExceededException('Metin koordinat kapasitesini aştı.');
+        }
+        $normalizedText = '';
+        $normByteToOrigStart = '';
+        $normByteToOrigEnd = '';
 
         $bytePos = 0;
-        $currentNormBytePos = 0;
 
         while ($bytePos < $origLen) {
             $b0 = ord($text[$bytePos]);
@@ -188,18 +202,11 @@ final class NormalizedText
                 $bytePos += $charByteLen;
             }
 
-            $normChars[] = $normChar;
+            $normalizedText .= $normChar;
             $normCharByteLen = strlen($normChar);
-
-            for ($b = 0; $b < $normCharByteLen; $b++) {
-                $normByteToOrigStart[$currentNormBytePos + $b] = $origStart;
-                $normByteToOrigEnd[$currentNormBytePos + $b] = $origEnd;
-            }
-
-            $currentNormBytePos += $normCharByteLen;
+            $normByteToOrigStart .= str_repeat(pack('V', $origStart), $normCharByteLen);
+            $normByteToOrigEnd .= str_repeat(pack('V', $origEnd), $normCharByteLen);
         }
-
-        $normalizedText = implode('', $normChars);
 
         return new self($originalInputText, $normalizedText, $normByteToOrigStart, $normByteToOrigEnd);
     }

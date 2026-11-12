@@ -15,4 +15,5 @@ enum DetectionEvidence: string
     case OCR_NORMALIZED = 'OCR_NORMALIZED';
     case AMBIGUOUS_OVERLAP = 'AMBIGUOUS_OVERLAP';
     case COMPONENT_MATCH = 'COMPONENT_MATCH';
+    case LLM_SOURCE_MATCH = 'LLM_SOURCE_MATCH';
 }

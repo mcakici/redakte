@@ -12,6 +12,10 @@ use Redakte\Validators\IbanMod97Validator;
 use Redakte\Validators\LuhnChecksumValidator;
 use Redakte\Validators\TcknChecksumValidator;
 use Redakte\Validators\VknChecksumValidator;
+use Redakte\Contracts\LlmTransportInterface;
+use Redakte\Llm\NativeHttpTransport;
+use Redakte\Llm\OllamaClient;
+use Redakte\Llm\OllamaDetector;
 
 class RedakteServiceProvider extends ServiceProvider
 {
@@ -35,6 +39,11 @@ class RedakteServiceProvider extends ServiceProvider
         $this->app->singleton(VknChecksumValidator::class, fn () => new VknChecksumValidator());
         $this->app->singleton(LuhnChecksumValidator::class, fn () => new LuhnChecksumValidator());
         $this->app->singleton(ModelIdentityRedactor::class, fn () => new ModelIdentityRedactor());
+        $this->app->singleton(LlmTransportInterface::class, fn () => new NativeHttpTransport());
+        $this->app->singleton(OllamaClient::class, fn ($app) => new OllamaClient($app->make(LlmTransportInterface::class)));
+        $this->app->singleton(OllamaDetector::class, fn ($app) => new OllamaDetector(
+            $app->make(PatternRegistry::class), $app->make(OllamaClient::class),
+        ));
 
         $this->app->singleton(NameRedactor::class, function ($app) {
             return new NameRedactor($app->make(PatternRegistry::class));
@@ -52,6 +61,7 @@ class RedakteServiceProvider extends ServiceProvider
                 ibanValidator: $app->make(IbanMod97Validator::class),
                 vknValidator: $app->make(VknChecksumValidator::class),
                 luhnValidator: $app->make(LuhnChecksumValidator::class),
+                llmDetector: $app->make(OllamaDetector::class),
             );
         });
 

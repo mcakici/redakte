@@ -68,4 +68,30 @@ class LaravelIntegrationTest extends OrchestraTestCase
         $restored = Redakte::unmask('Onaylanan TCKN: [TCKN_1]', $map);
         $this->assertSame('Onaylanan TCKN: 43650391326', $restored);
     }
+
+    public function test_llm_configuration_and_transport_are_resolved_from_container(): void
+    {
+        $previous = $this->app['config']->get('redakte.llm');
+        try {
+            $this->app['config']->set('redakte.llm', [
+                'endpoint' => 'http://localhost:11434/api/chat', 'model' => 'synthetic',
+            ]);
+            $transport = new class implements \Redakte\Contracts\LlmTransportInterface {
+                public array $calls = [];
+                public function post(array $payload, \Redakte\Llm\LlmOptions $options, ?string $endpoint = null, ?float $timeoutSeconds = null): array
+                {
+                    $this->calls[] = $payload;
+                    return ['done' => true, 'message' => ['content' => '{"entities":[{"type":"KISI","text":"zelora tavren","occurrence":1}]}']];
+                }
+            };
+            $this->app->instance(\Redakte\Contracts\LlmTransportInterface::class, $transport);
+            $result = Redakte::redact('zelora tavren');
+            $this->assertSame('[KISI_1]', $result->redactedText);
+            $this->assertCount(1, $transport->calls);
+            Redakte::redact('zelora tavren', ['llm' => false]);
+            $this->assertCount(1, $transport->calls);
+        } finally {
+            $this->app['config']->set('redakte.llm', $previous);
+        }
+    }
 }

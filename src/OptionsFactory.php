@@ -35,6 +35,7 @@ final class OptionsFactory
         'session',
         'strict',
         'strict_mode',
+        'llm',
     ];
 
     /**
@@ -62,6 +63,7 @@ final class OptionsFactory
                     tokenFormat: $configTokenFormat,
                     session: $options->session,
                     strictMode: $options->strictMode,
+                    llm: $options->llm,
                 );
             }
             return $options;
@@ -132,6 +134,7 @@ final class OptionsFactory
             tokenFormat: $tokenFormat,
             session: $session,
             strictMode: $strictMode,
+            llm: $options['llm'] ?? null,
         );
     }
 }

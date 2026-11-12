@@ -82,6 +82,7 @@ class Redactor
             tokenFormat: $resolved->tokenFormat,
             session: $resolved->session,
             strictMode: $resolved->strictMode,
+            llm: $resolved->llm,
         );
 
         return $this->redact($text, $partialOptions)->redactedText;
@@ -106,6 +107,7 @@ class Redactor
             tokenFormat: $resolved->tokenFormat,
             session: $resolved->session,
             strictMode: $resolved->strictMode,
+            llm: $resolved->llm,
         );
 
         $result = $this->redact($text, $tagOptions);

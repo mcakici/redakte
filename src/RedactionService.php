@@ -22,6 +22,8 @@ use Redakte\Detectors\PlateDetector;
 use Redakte\Detectors\TcknDetector;
 use Redakte\Detectors\VknDetector;
 use Redakte\Normalization\NormalizedText;
+use Redakte\Llm\OllamaDetector;
+use Redakte\Result\RedactionWarning;
 use Redakte\Support\ReplacementEngine;
 use Redakte\Token\RedactionSession;
 use Redakte\Validators\IbanMod97Validator;
@@ -49,9 +51,11 @@ class RedactionService
         ?OverlapResolver $resolver = null,
         ?ReplacementEngine $replacementEngine = null,
         ?array $customDetectors = null,
+        private ?DetectorInterface $llmDetector = null,
     ) {
         $this->resolver = $resolver ?? new OverlapResolver();
         $this->replacementEngine = $replacementEngine ?? new ReplacementEngine();
+        $this->llmDetector ??= new OllamaDetector($this->registry);
 
         if ($customDetectors !== null) {
             $this->detectors = $customDetectors;
@@ -101,7 +105,7 @@ class RedactionService
 
         // 1. Aşama: DETECT — Bütün dedektörler normalize edilmiş metinden aday üretir
         $allCandidates = [];
-        foreach ($this->detectors as $detector) {
+        foreach ([...$this->detectors, $this->llmDetector] as $detector) {
             $candidates = $detector->detect($normText, $context);
             if (!empty($candidates)) {
                 foreach ($candidates as $candidate) {
@@ -119,6 +123,7 @@ class RedactionService
                         validationStatus: $candidate->validationStatus,
                         evidences: $candidate->evidences,
                         priority: $candidate->priority,
+                        metadata: $candidate->metadata,
                     );
                 }
             }
@@ -160,6 +165,16 @@ class RedactionService
 
         $riskLevel = $hasInvalidCandidates ? 'medium' : 'low';
         $status = 'complete';
+        $requiresHumanReview = false;
+        if (in_array('LLM_OLLAMA', $appliedRules, true)) {
+            $requiresHumanReview = true;
+            $riskLevel = 'medium';
+            $status = 'review_required';
+            $warnings[] = new RedactionWarning(
+                code: 'LLM_SUGGESTION_APPLIED', severity: 'medium',
+                message: 'Kaynak metinde doğrulanan LLM önerileri uygulandı; anlamsal doğruluk için insan incelemesi önerilir.',
+            );
+        }
 
         return new RedactionResult(
             spans: $spans,
@@ -171,7 +186,7 @@ class RedactionService
             policyId: $this->registry->getPolicyId(),
             policyVersion: $this->registry->getPolicyVersion(),
             appliedRules: $appliedRules,
-            requiresHumanReview: false,
+            requiresHumanReview: $requiresHumanReview,
             map: $resultMap,
             status: $status,
             strategy: $options->strategy,

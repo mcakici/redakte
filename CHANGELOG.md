@@ -2,6 +2,26 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.3] - 2026-11-12
+
+### İsteğe Bağlı Yerel LLM Tespiti
+
+- Varsayılan olarak ağ çağrısı yapmayan Ollama native `/api/chat` adaptörü eklendi. Endpoint ve model birlikte verilince otomatik açılır; genel veya çağrı bazlı açık kapatma desteklenir.
+- Model adı, sistem talimatı, `num_ctx`, `num_predict`, `temperature`, `num_gpu` ve özel model seçenekleri dışarıdan yapılandırılabilir. Çağrı ayarları sonraki isteklere taşınmaz.
+- `think`, `thinking`, `enable_thinking` ve `reasoning_effort` normalize edilir. `/api/show` metadata doğrulaması desteklenmeyen seviyelerin sessizce varsayılana düşmesini önler; eski sürümlerin boolean davranışı korunur.
+- `num_ctx`, sistem talimatı, çıktı rezervi ve varsayılan %5 güvenli payla otomatik parça planlama; context/çıktı sınırlarında sınırlı küçültme ve toplam işlem zaman sınırı eklendi.
+- JSON şemalı tespit adayları kaynak metin ve tekrar numarasıyla doğrulanır. UTF-8 parçalara ayırma, örtüşen aday tekilleştirme, orijinal byte koordinatları, checksum politikaları ve mevcut maskeleme stratejileri birlikte çalışır.
+- Sağlık ve diğer hassas bilgi grupları için yapılandırılabilir anlamsal entity türleri eklendi. Uygulanan LLM tespitleri insan incelemesi gerektirdiğini açıkça bildirir; model doğruluğu garantisi verilmez.
+- HTTP/çıktı boyutu/parça sayısı sınırları, zaman aşımı, TLS doğrulaması ve yönlendirme engeli eklendi. Hatalarda kişisel veri içermeyen istisna üretilir; sessiz başarı/fallback yapılmaz.
+- Laravel servis binding'leri, bağımsız PHP fabrikası, çağrı seçenekleri ve `partial()` / `maskForLLM()` akışları entegre edildi. Ek framework zorunluluğu getirilmedi.
+
+- Uzun metinlerde normalizasyon haritası kompakt byte dizilerine taşınarak O(1) koordinat sorgusu korunurken bellek kullanımı azaltıldı.
+
+### Doğrulama
+
+- Model seçenekleri, düşünme metadata uyumluluğu, kapalı varsayılan, Unicode koordinatları, tür/politika filtreleri ve kaynak eşleşmesi için regresyonlar eklendi.
+- Gerçek loopback HTTP bağlantılarıyla sentetik Ollama yanıtları, başlıklar, hata kodları, yönlendirmeler, boyut sınırları ve zaman aşımı test edildi. Bu testler gerçek model precision/recall ölçümü değildir.
+
 ## [1.0.2] - 2026-09-05
 
 ### Güvenlik ve Mimari Sertleştirmeleri

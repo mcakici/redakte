@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 return [
     'policy_id' => 'legal_tr_v1',
-    'policy_version' => '1.0.2',
+    'policy_version' => '1.0.3',
 
     /**
      * Entity türleri — kodda tanımlayıcı ve Türkçe rapor etiketi
@@ -31,6 +31,26 @@ return [
         'KARAR_NO' => ['label' => 'karar no', 'label_plural' => 'karar no'],
         'DOSYA_NO' => ['label' => 'dosya no', 'label_plural' => 'dosya no'],
         'IP_ADRESI' => ['label' => 'IP adresi', 'label_plural' => 'IP adresi'],
+        // Aşağıdaki anlamsal türlerin otomatik tespiti isteğe bağlı LLM katmanına aittir.
+        'DOGUM_TARIHI' => ['label' => 'doğum tarihi', 'label_plural' => 'doğum tarihi'],
+        'KIMLIK_NO' => ['label' => 'pasaport/ehliyet/kimlik belge numarası', 'label_plural' => 'kimlik belge numarası'],
+        'HESAP_NO' => ['label' => 'banka/finans hesap numarası', 'label_plural' => 'hesap numarası'],
+        'MUSTERI_NO' => ['label' => 'müşteri/sicil/üyelik numarası', 'label_plural' => 'müşteri/sicil numarası'],
+        'KULLANICI_ADI' => ['label' => 'kişisel kullanıcı adı', 'label_plural' => 'kullanıcı adı'],
+        'SIFRE' => ['label' => 'parola/erişim sırrı', 'label_plural' => 'parola/erişim sırrı'],
+        'KONUM' => ['label' => 'kişiye ait hassas konum', 'label_plural' => 'konum bilgisi'],
+        'SAGLIK' => ['label' => 'kişiye ait sağlık bilgisi', 'label_plural' => 'sağlık bilgisi'],
+        'BIYOMETRIK' => ['label' => 'kişiye ait biyometrik veri', 'label_plural' => 'biyometrik veri'],
+        'GENETIK' => ['label' => 'kişiye ait genetik veri', 'label_plural' => 'genetik veri'],
+        'KOKEN' => ['label' => 'kişiye ait ırk/etnik köken bilgisi', 'label_plural' => 'köken bilgisi'],
+        'INANC' => ['label' => 'kişiye ait din/mezhep/felsefi inanç', 'label_plural' => 'inanç bilgisi'],
+        'SIYASI_GORUS' => ['label' => 'kişiye ait siyasi düşünce', 'label_plural' => 'siyasi görüş bilgisi'],
+        'UYELIK' => ['label' => 'kişiye ait dernek/vakıf/sendika üyeliği', 'label_plural' => 'üyelik bilgisi'],
+        'CINSEL_HAYAT' => ['label' => 'kişiye ait cinsel hayat bilgisi', 'label_plural' => 'cinsel hayat bilgisi'],
+        'CEZA_BILGISI' => ['label' => 'kişiye ait ceza mahkumiyeti/güvenlik tedbiri', 'label_plural' => 'ceza/güvenlik tedbiri bilgisi'],
+        'KILIK_KIYAFET' => ['label' => 'kişiye ait kılık/kıyafet bilgisi', 'label_plural' => 'kılık/kıyafet bilgisi'],
+        'FINANSAL_BILGI' => ['label' => 'kişiye ait gelir/borç/finansal durum', 'label_plural' => 'finansal bilgi'],
+        'DIGER_KISISEL' => ['label' => 'diğer türlere girmeyen kişiyi tanımlayıcı veya kişiye atfedilen özel bilgi', 'label_plural' => 'diğer kişisel bilgi'],
     ],
 
     /**
@@ -47,6 +67,39 @@ return [
      * Varsayılan maskeleme stratejisi: 'tag' | 'partial' | 'asterisk' | 'label'
      */
     'default_strategy' => 'tag',
+
+    /**
+     * İsteğe bağlı Ollama native /api/chat desteği.
+     * enabled=null: endpoint + model verilince açılır; boş varsayılanlarda KAPALIDIR.
+     * enabled=false: bilgiler verilse de kapalı. Model seçenekleri options içinde aktarılır.
+     * Bu URL'leri ve başlıkları yalnızca güvenilir uygulama yapılandırmasından alın.
+     */
+    'llm' => [
+        'enabled' => null,
+        'endpoint' => null, // Örn. http://127.0.0.1:11434/api/chat
+        'model' => null,
+        'system_prompt' => \Redakte\Llm\LlmOptions::DEFAULT_SYSTEM_PROMPT,
+        'options' => [
+            'num_ctx' => 8192,
+            'num_predict' => 2048,
+            'temperature' => 0,
+            // 'num_gpu' => -1, 'top_p' => 0.9, 'seed' => 42, ...
+        ],
+        'think' => null, // null: model varsayılanı; bool veya /api/show thinking.values seviyesi
+        'keep_alive' => '5m',
+        'headers' => [],
+        'timeout_seconds' => 120,
+        'total_timeout_seconds' => 600,
+        'max_response_bytes' => 1048576,
+        'chunk_size' => null, // null: num_ctx bütçesine göre otomatik; sayı verilirse byte üst sınırı
+        'chunk_overlap' => null, // null: parça boyutuna göre otomatik
+        'context_safety_margin' => 0.05,
+        'estimated_bytes_per_token' => 2.0, // Tokenizer yoksa başlangıç tahmini; kesin token sayımı değil
+        'output_token_reserve' => 2048, // num_predict=-1 ise planlama rezervi
+        'max_chunks' => 512,
+        'entity_types' => null, // null: kayıtlı ve çağrıda izin verilen bütün türler
+        'show_endpoint' => null, // null: chat URL sonundaki /chat -> /show
+    ],
 
     /**
      * Pattern tanımları — öncelik sırasına göre (yüksek önce çalışır)

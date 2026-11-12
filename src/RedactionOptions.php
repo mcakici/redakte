@@ -6,6 +6,7 @@ namespace Redakte;
 
 use InvalidArgumentException;
 use Redakte\Policy\RedactionPolicy;
+use Redakte\Llm\LlmOptions;
 use Redakte\Token\RedactionSession;
 
 /**
@@ -27,6 +28,7 @@ final readonly class RedactionOptions
      * @param string $tokenFormat 'namespaced' (⟦RDT:xxxx:ENTITY:idx⟧) veya 'legacy' ([ENTITY_idx])
      * @param RedactionSession|null $session Çok sayfalı/oturum bazlı token eşleme oturumu
      * @param bool $strictMode Bilinmeyen tür veya seçeneklerde hata fırlatılsın mı
+     * @param LlmOptions|array<string, mixed>|bool|null $llm Null genel ayarları devralır; false tüm LLM çağrılarını kapatır
      * @throws InvalidArgumentException
      */
     public function __construct(
@@ -40,6 +42,7 @@ final readonly class RedactionOptions
         public ?string $tokenFormat = null,
         public ?RedactionSession $session = null,
         public bool $strictMode = false,
+        public LlmOptions|array|bool|null $llm = null,
     ) {
         if ($tokenFormat !== null && !in_array($tokenFormat, ['namespaced', 'legacy'], true)) {
             throw new InvalidArgumentException(sprintf('Geçersiz token formatı: "%s". İzin verilenler: namespaced, legacy.', $tokenFormat));
