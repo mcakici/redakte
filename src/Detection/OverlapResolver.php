@@ -17,7 +17,7 @@ final class OverlapResolver
      * @param list<Detection> $candidates
      * @return list<Detection>
      */
-    public function resolve(array $candidates, RedactionPolicy $policy): array
+    public function resolve(array $candidates, RedactionPolicy $policy, ?string $originalText = null): array
     {
         if (empty($candidates)) {
             return [];
@@ -113,7 +113,80 @@ final class OverlapResolver
         // Başlangıç ofsetine göre sırala
         usort($selected, fn (Detection $a, Detection $b) => $a->startOffset <=> $b->startOffset);
 
-        return $selected;
+        return $originalText === null ? $selected : $this->preserveLlmCoverage($selected, $filtered, $originalText);
+    }
+
+    /**
+     * A shorter, higher-scoring rule must not expose part of an accepted LLM span.
+     * Only selected spans and policy-accepted LLM spans participate. Connected
+     * overlaps are scanned once after sorting; rule-only resolution is unchanged.
+     *
+     * @param list<Detection> $selected Non-overlapping weighted selection
+     * @param list<Detection> $accepted Policy-filtered candidates
+     * @return list<Detection>
+     */
+    private function preserveLlmCoverage(array $selected, array $accepted, string $originalText): array
+    {
+        $entries = [];
+        foreach ($accepted as $candidate) {
+            if ($candidate->hasEvidence(DetectionEvidence::LLM_SOURCE_MATCH)) {
+                $entries[] = [$candidate, false];
+            }
+        }
+        if ($entries === []) {
+            return $selected;
+        }
+        foreach ($selected as $candidate) {
+            $entries[] = [$candidate, true];
+        }
+        usort($entries, static fn (array $a, array $b): int =>
+            ($a[0]->startOffset <=> $b[0]->startOffset) ?: ($a[0]->endOffset <=> $b[0]->endOffset));
+
+        $result = [];
+        $group = [];
+        $end = -1;
+        foreach ($entries as $entry) {
+            if ($group !== [] && $entry[0]->startOffset >= $end) {
+                array_push($result, ...$this->coverGroup($group, $originalText));
+                $group = [];
+            }
+            $group[] = $entry;
+            $end = max($end, $entry[0]->endOffset);
+        }
+        array_push($result, ...$this->coverGroup($group, $originalText));
+        return $result;
+    }
+
+    /** @param list<array{Detection, bool}> $group @return list<Detection> */
+    private function coverGroup(array $group, string $originalText): array
+    {
+        $start = $group[0][0]->startOffset;
+        $end = $start;
+        $coveredBytes = 0;
+        $selected = [];
+        $anchor = null;
+        foreach ($group as [$candidate, $isSelected]) {
+            $end = max($end, $candidate->endOffset);
+            if ($isSelected) {
+                $selected[] = $candidate;
+                $coveredBytes += $candidate->length();
+            } elseif ($anchor === null || $this->computeScore($candidate) > $this->computeScore($anchor)) {
+                $anchor = $candidate;
+            }
+        }
+        if ($anchor === null || $coveredBytes === $end - $start) {
+            return $selected;
+        }
+        $value = substr($originalText, $start, $end - $start);
+        $unchanged = $start === $anchor->startOffset && $end === $anchor->endOffset;
+        return [new Detection(
+            startOffset: $start, endOffset: $end, entityType: $anchor->entityType,
+            originalValue: $value, normalizedValue: $unchanged ? $anchor->normalizedValue : $value,
+            confidence: $anchor->confidence, ruleId: $anchor->ruleId,
+            validationStatus: $unchanged ? $anchor->validationStatus : 'not_checked',
+            evidences: $unchanged ? $anchor->evidences : [DetectionEvidence::LLM_SOURCE_MATCH->value],
+            priority: $anchor->priority, metadata: ['coverage_merged' => true],
+        )];
     }
 
     /**

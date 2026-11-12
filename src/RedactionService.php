@@ -130,7 +130,7 @@ class RedactionService
         }
 
         // 2. Aşama: RESOLVE — Çakışmalar deterministik O(m log m) interval algoritmasıyla çözülür
-        $selected = $this->resolver->resolve($allCandidates, $options->policy);
+        $selected = $this->resolver->resolve($allCandidates, $options->policy, $text);
 
         // 3. Aşama: APPLY — Değişiklikler tek geçişte sondan başa uygulanır
         $legacyFormat = ($options->tokenFormat === 'legacy');

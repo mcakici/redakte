@@ -206,6 +206,57 @@ class LlmRedactionTest extends TestCase
         self::assertSame('zelora tavren', $result->redactedText);
     }
 
+    public function test_wider_llm_detection_is_not_partially_exposed_by_a_shorter_rule(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([['type' => 'SAGLIK', 'text' => 'Ayşe Yılmaz için migren tanısı', 'occurrence' => 1]]);
+        $text = 'Dosya: Ayşe Yılmaz için migren tanısı. İnceleme tamamlandı.';
+        $result = $this->redactor($transport, rules: true)->redact($text, [
+            'policy' => 'strict', 'llm' => $this->settings(),
+        ]);
+        self::assertSame('Dosya: [SAGLIK_1]. İnceleme tamamlandı.', $result->redactedText);
+        self::assertSame($text, $result->unmask($result->redactedText));
+        self::assertTrue($result->requiresHumanReview);
+    }
+
+    public function test_overlapping_llm_detections_preserve_all_sensitive_bytes_and_round_trip(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'SAGLIK', 'text' => 'zelora tavren için migren', 'occurrence' => 1],
+            ['type' => 'SAGLIK', 'text' => 'migren tanısı ve ilaç bilgisi', 'occurrence' => 1],
+        ]);
+        $text = 'Not: zelora tavren için migren tanısı ve ilaç bilgisi.';
+        $result = $this->redactor($transport)->redact($text, ['llm' => $this->settings()]);
+        self::assertSame('Not: [SAGLIK_1].', $result->redactedText);
+        self::assertSame($text, $result->unmask($result->redactedText));
+        self::assertCount(1, $result->spans);
+    }
+
+    public function test_coverage_completion_does_not_restore_candidates_rejected_by_policy(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'KISI', 'text' => 'Ayşe Yılmaz için migren tanısı', 'occurrence' => 1],
+        ]);
+        $text = 'Ayşe Yılmaz için migren tanısı. TCKN: 43650391326';
+        $result = $this->redactor($transport, rules: true)->redact($text, [
+            'policy' => 'validated_only', 'llm' => $this->settings(),
+        ]);
+        self::assertStringContainsString('Ayşe Yılmaz için migren tanısı', $result->redactedText);
+        self::assertStringContainsString('[TCKN_1]', $result->redactedText);
+    }
+
+    public function test_fully_covered_llm_span_keeps_the_more_precise_validated_rule(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([['type' => 'KIMLIK_NO', 'text' => '43650391326', 'occurrence' => 1]]);
+        $text = 'TCKN: 43650391326';
+        $result = $this->redactor($transport, rules: true)->redact($text, ['llm' => $this->settings()]);
+        self::assertSame('TCKN: [TCKN_1]', $result->redactedText);
+        self::assertSame($text, $result->unmask($result->redactedText));
+    }
+
     public function test_overlapping_utf8_chunks_are_deduplicated_and_scan_all_text(): void
     {
         $transport = new RecordingLlmTransport();

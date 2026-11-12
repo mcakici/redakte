@@ -2,6 +2,16 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.4] - 2026-11-13
+
+### Hibrit tespitlerde kapsam güvenliği
+
+- Daha kısa bir deterministik kuralın daha geniş, politika tarafından kabul edilmiş LLM tespitinin kalanını açık bırakması düzeltildi. Kısmen çakışan LLM tespitleri de bütün hassas aralığı kaplar.
+- Çakışan alanlar gerektiğinde tek geri döndürülebilir yer tutucuda birleştirilir. Tamamen kapatılmış alanlarda daha özgül deterministik tür korunur; politika tarafından reddedilen adaylar geri eklenmez.
+- Ek sıralama ve doğrusal tarama ile O(m log m) karmaşıklık korunur. LLM kapalıyken mevcut davranış değişmez.
+- Dört regresyonla kapsam, UTF-8 metin, geri yerleştirme ve politika filtreleri doğrulandı. Toplam 164 test / 547 assertion geçti.
+- Maskelemenin hukuken tam anonimleştirme veya gerçek modelde kusursuz tespit garantisi olmadığı açıklandı. Sağlık dahil hangi türlerin maskeleneceği çağrıdaki `only` / `entity_types` politikasına bağlı kalır.
+
 ## [1.0.3] - 2026-11-12
 
 ### İsteğe Bağlı Yerel LLM Tespiti

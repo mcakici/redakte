@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 return [
     'policy_id' => 'legal_tr_v1',
-    'policy_version' => '1.0.3',
+    'policy_version' => '1.0.4',
 
     /**
      * Entity türleri — kodda tanımlayıcı ve Türkçe rapor etiketi

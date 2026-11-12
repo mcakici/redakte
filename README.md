@@ -1,6 +1,6 @@
 # Redakte - PHP & Laravel Kişisel Veri Redaksiyon ve Anonimleştirme Paketi
 
-[![Latest Version](https://img.shields.io/badge/version-v1.0.3-blue.svg?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
+[![Latest Version](https://img.shields.io/badge/version-v1.0.4-blue.svg?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Tests](https://github.com/mcakici/redakte/actions/workflows/tests.yml/badge.svg)](https://github.com/mcakici/redakte/actions/workflows/tests.yml)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-777bb4.svg?style=flat-square)](composer.json)
@@ -130,6 +130,10 @@ Genel ayarlar saf PHP'de `Redakte::create(['llm' => [...]])`, Laravel'de `config
 HTTP hatası, zaman aşımı, geçersiz yanıt veya kaynak metinle eşleşmeyen tespitte `LlmDetectionException` fırlatılır; kısmi tarama başarı sayılmaz. Yerleşik istemci `allow_url_fopen` gerektirir. Laravel'de `LlmTransportInterface` farklı bir HTTP istemcisiyle değiştirilebilir.
 
 LLM açıldığında normalize metin seçtiğiniz endpoint'e gönderilir. Bağlantı ayarlarını güvenilir uygulama yapılandırmasından alın. Tamamen yerel kullanım için yerel model seçin ve Ollama'yı `OLLAMA_NO_CLOUD=1` ile çalıştırın. [Ollama yerel kullanım](https://docs.ollama.com/faq).
+
+**Hibrit kapsam:** Politikanın kabul ettiği bir LLM aralığının yalnız bir bölümünü kapatan daha kısa bir kural, kalan hassas metni açık bırakamaz. Gerektiğinde çakışan aralıklar tek yer tutucuda birleştirilir. Tam kapsamada özgül deterministik tür korunur. Bu güvence yalnız tespit edilmiş ve politika tarafından kabul edilmiş aralıklar içindir; modelin kaçırdığı verileri bulma garantisi değildir.
+
+**Maskeleme ve anonimlik:** Geri döndürülebilir token haritası, anonimlik garantisi sağlamaz. Haritanın yalnız sizin sunucunuzda tutulması veya silinmesi de tek başına anonimliği kanıtlamaz; kalan olay ayrıntılarından yeniden tanımlama riski ayrıca değerlendirilmelidir. Bu paket hukuki uygunluk veya bütün kişisel verilerin bulunması garantisi vermez. Hukuki değerlendirme için gerekli genel sağlık/olay bilgilerini korumak isterseniz uygulamanızda izin verilen tür listesini açıkça belirleyin; bunu tam anonimleştirme olarak adlandırmayın.
 
 ### 1. LLM & Yapay Zeka Çift Yönlü Maskeleme (Reversible Redaction)
 
