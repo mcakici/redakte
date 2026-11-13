@@ -49,6 +49,17 @@ final class RecordingLlmTransport implements LlmTransportInterface
 
 class LlmRedactionTest extends TestCase
 {
+    public function test_model_name_false_positive_in_an_imperative_does_not_override_source_context(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'KISI', 'text' => 'HALE GETİR', 'occurrence' => 1],
+            ['type' => 'KISI', 'text' => 'Hale Demir', 'occurrence' => 1],
+        ]);
+        $result = $this->redactor($transport)->redact('DİLEKÇEYİ SAĞLAM HALE GETİR. Davacı: Hale Demir.', ['llm' => $this->settings()]);
+        self::assertSame('DİLEKÇEYİ SAĞLAM HALE GETİR. Davacı: [KISI_1].', $result->redactedText);
+    }
+
     private function redactor(RecordingLlmTransport $transport, array $config = [], bool $rules = false): Redactor
     {
         $registry = new PatternRegistry(array_replace(['token_format' => 'legacy'], $config));

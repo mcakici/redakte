@@ -6,6 +6,16 @@ namespace Redakte\Tests;
 
 class NameRedactionTest extends TestCase
 {
+    public function test_uppercase_instruction_is_preserved_while_hale_remains_a_valid_person_name(): void
+    {
+        foreach (['DİLEKÇEYİ DAHA HUKUKİ VE SAĞLAM HALE GETİR', 'Metni anlaşılır hâle getirin.'] as $source) {
+            $this->assertSame($source, $this->redactor->redact($source)->redactedText);
+        }
+        $result = $this->redactor->redact('Davacı: Hale Getir. Davalı: Hale Demir.');
+        $this->assertStringNotContainsString('Hale Getir', $result->redactedText);
+        $this->assertStringNotContainsString('Hale Demir', $result->redactedText);
+    }
+
     public function test_davaci_davali_redaction(): void
     {
         $text = 'Davacı Ayşe Demir ve Davalı Mehmet Kaya duruşmaya katıldı.';

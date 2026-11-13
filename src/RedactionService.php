@@ -111,6 +111,9 @@ class RedactionService
                 foreach ($candidates as $candidate) {
                     [$origStart, $origEnd] = $normalized->mapSpanToOriginal($candidate->startOffset, $candidate->endOffset);
                     $origValue = substr($text, $origStart, $origEnd - $origStart);
+                    if ($candidate->entityType === 'KISI' && \Redakte\Support\NameContext::isInstructionPhrase($text, $origStart, $origEnd)) {
+                        continue;
+                    }
 
                     $allCandidates[] = new Detection(
                         startOffset: $origStart,

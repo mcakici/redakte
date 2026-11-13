@@ -2,6 +2,14 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.6] - 2026-11-13
+
+### Emir cümlelerinde isim bağlamı
+
+- `SAĞLAM HALE GETİR` gibi bağlamı açık emir öbekleri hem sözlük hem LLM adaylarında kişi adı olarak maskelenmez. `Davacı: Hale Getir` ve gerçek Hale adları korunmaya devam eder.
+- Bağlam filtresi dışarıdan `NameContext::isInstructionPhrase` ile kullanılabilir; mevcut snapshot gösterimleri modele yeniden gitmeden düzeltilebilir.
+- İki regresyonla toplam 171 test / 574 assertion geçti.
+
 ## [1.0.5] - 2026-11-13
 
 ### Kaynak eşleştirme ve kurtarma
