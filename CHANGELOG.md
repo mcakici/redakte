@@ -2,6 +2,17 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.7] - 2026-11-14
+
+### Plaka bağlamı ve ortak redaksiyon kuralları
+
+- `24 ve 25`, `60 ile 72`, tutar/birim ifadeleri ve tarih parçalarının plaka sanılması düzeltildi. Unicode kelime sınırları ve 01–81 il kodları hem tespitte hem varsayılan kalan-risk taramasında aynı kuralla denetlenir.
+- Açık plaka etiketleri ve `plakalı` bağlamı korunur. Büyük harfli belirsiz gruplar ek bir sayı/tutar bağlamı yoksa maskelenir; bitişik, tireli, küçük harfli, NBSP, görünmez karakter ve CRLF biçimleri geri açılabilir kalır.
+- LLM ve özel dedektörlerin klasik plaka adayları da çakışmalar çözülmeden önce aynı kaynak bağlamıyla değerlendirilir. Bilinmeyen sayısal/yabancı plaka adayları bu düzeltmeyle otomatik açılmaz; diğer kişisel veri türleri korunur.
+- `PlateContext` ve `RedactionSnapshotRepair` ortak API'leri eklendi. Kaydedilmiş metin/harita/aralıklar aynı kurallarla, LLM çağrısı olmadan düzeltilebilir. Aynı tokenı paylaşan gerçek plaka/kişi yalnız yanlış tespit edilen diğer kullanım yüzünden açılmaz. Kaynak hash'i veya aralık kapsamı geçersizse kayıt değiştirilmez.
+- Plaka hariç tutma aralıkları Unicode normalizasyonundan sonra orijinal byte koordinatlarında denetlenir. Snapshot yeniden oluşturma sıralı aralıklarla tek geçişte yapılır.
+- PHP 8.4 üzerinde toplam 203 test / 656 assertion geçti; gerçek model doğruluğu ölçümü değildir.
+
 ## [1.0.6] - 2026-11-13
 
 ### Emir cümlelerinde isim bağlamı

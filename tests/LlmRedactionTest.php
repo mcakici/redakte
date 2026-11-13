@@ -49,6 +49,39 @@ final class RecordingLlmTransport implements LlmTransportInterface
 
 class LlmRedactionTest extends TestCase
 {
+    public function test_plate_suggestions_are_filtered_by_occurrence_before_overlap_resolution(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'PLAKA', 'text' => '24 ve 25', 'occurrence' => 1],
+            ['type' => 'PLAKA', 'text' => '34 ABC 123', 'occurrence' => 1],
+            ['type' => 'EPOSTA', 'text' => 'kisi@example.com', 'occurrence' => 1],
+        ]);
+        $source = 'ş 24 ve 25 maddeleri. Plaka: 24 ve 25. 34 ABC 123. kisi@example.com';
+        $result = $this->redactor($transport)->redact($source, ['llm' => $this->settings()]);
+
+        self::assertStringContainsString('24 ve 25 maddeleri.', $result->redactedText);
+        self::assertStringNotContainsString('Plaka: 24 ve 25', $result->redactedText);
+        self::assertStringNotContainsString('34 ABC 123', $result->redactedText);
+        self::assertStringNotContainsString('kisi@example.com', $result->redactedText);
+        self::assertSame(2, $result->replacementsByType['PLAKA']);
+        self::assertSame($source, $result->unmask($result->redactedText));
+    }
+
+    public function test_unknown_numeric_and_foreign_plate_suggestions_are_not_silently_unmasked(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'PLAKA', 'text' => '43650391326', 'occurrence' => 1],
+            ['type' => 'PLAKA', 'text' => '84 AB 123', 'occurrence' => 1],
+        ]);
+        $result = $this->redactor($transport)->redact('43650391326; 84 AB 123.', ['llm' => $this->settings()]);
+
+        self::assertSame(2, $result->replacementsByType['PLAKA']);
+        self::assertStringNotContainsString('43650391326', $result->redactedText);
+        self::assertStringNotContainsString('84 AB 123', $result->redactedText);
+    }
+
     public function test_model_name_false_positive_in_an_imperative_does_not_override_source_context(): void
     {
         $transport = new RecordingLlmTransport();

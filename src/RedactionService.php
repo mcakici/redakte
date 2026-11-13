@@ -105,6 +105,7 @@ class RedactionService
 
         // 1. Aşama: DETECT — Bütün dedektörler normalize edilmiş metinden aday üretir
         $allCandidates = [];
+        $acceptedPlates = null;
         foreach ([...$this->detectors, $this->llmDetector] as $detector) {
             $candidates = $detector->detect($normText, $context);
             if (!empty($candidates)) {
@@ -112,6 +113,12 @@ class RedactionService
                     [$origStart, $origEnd] = $normalized->mapSpanToOriginal($candidate->startOffset, $candidate->endOffset);
                     $origValue = substr($text, $origStart, $origEnd - $origStart);
                     if ($candidate->entityType === 'KISI' && \Redakte\Support\NameContext::isInstructionPhrase($text, $origStart, $origEnd)) {
+                        continue;
+                    }
+                    if ($candidate->entityType === 'PLAKA' && \Redakte\Support\PlateContext::isFalsePositive(
+                        $text, $origStart, $origEnd,
+                        $acceptedPlates ??= \Redakte\Support\PlateContext::acceptedRanges($text),
+                    )) {
                         continue;
                     }
 

@@ -9,6 +9,7 @@ use Redakte\Detection\Detection;
 use Redakte\Detection\DetectionContext;
 use Redakte\Detection\DetectionEvidence;
 use Redakte\Normalization\Canonicalizers\PlateCanonicalizer;
+use Redakte\Support\PlateContext;
 
 final class PlateDetector implements DetectorInterface
 {
@@ -27,11 +28,7 @@ final class PlateDetector implements DetectorInterface
 
         $detections = [];
 
-        // 01-81 il kodu, 1-3 harf, 2-4 rakam (boşluklu veya tireli veya bitişik)
-        // (?:0[1-9]|[1-7]\d|8[01])
-        $pattern = '/(?<![a-zA-Z0-9])(0[1-9]|[1-7]\d|8[01])[\s\-]*(?:([A-Za-z]{1,3})[\s\-]*(\d{2,4}))(?![a-zA-Z0-9])/u';
-
-        if (preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === false) {
+        if (preg_match_all(PlateContext::pattern(), $text, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) === false) {
             return [];
         }
 
@@ -40,17 +37,17 @@ final class PlateDetector implements DetectorInterface
             $start = (int) $match[0][1];
             $end = $start + strlen($raw);
 
-            if ($context->overlapsExclude($start, $end)) {
+            [$originalStart, $originalEnd] = $context->normalizedText->mapSpanToOriginal($start, $end);
+            if ($context->overlapsExclude($originalStart, $originalEnd)) {
                 continue;
             }
 
-            $provinceCode = (int) $match[1][0];
-            if ($provinceCode < 1 || $provinceCode > 81) {
+            if (preg_match('/\A(\d{2})[\s-]*([A-Za-z]{1,3})[\s-]*(\d{2,4})\z/u', $raw, $parts) !== 1) {
                 continue;
             }
-
-            $letters = $match[2][0];
-            $digits = $match[3][0];
+            $provinceCode = (int) $parts[1];
+            $letters = $parts[2];
+            $digits = $parts[3];
             $canonical = sprintf('%02d %s %s', $provinceCode, strtoupper($letters), $digits);
 
             // Çevreleyen bağlamda plaka etiketi var mı?

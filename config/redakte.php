@@ -178,7 +178,7 @@ return [
         [
             'id' => 'PLAKA_CLASSIC',
             'entity_type' => 'PLAKA',
-            'regex' => '/\b\d{2}\s*[A-Z]{1,3}\s*\d{2,4}\b/ui',
+            'regex' => \Redakte\Support\PlateContext::pattern(),
             'validator' => null,
             'priority' => 60,
         ],

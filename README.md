@@ -52,6 +52,42 @@
 
 ## 📦 Kurulum
 
+### 1.0.7: Ortak plaka kuralları ve kaydedilmiş sonuçlar
+
+Plaka tespiti, LLM adaylarının kontrolü ve varsayılan kalan-risk taraması aynı
+`Redakte\Support\PlateContext` kurallarını kullanır. `24 ve 25` gibi sayı grupları
+korunur; `Plaka: 24 VE 25` ve `24 ve 25 plakalı araç` bağlamlarında plaka maskelenir.
+Belirsiz büyük harfli gruplar ek bir madde/tutar bağlamı olmadan maskeli kalır.
+
+Arayüzler tespiti tekrar etmek yerine `RedactionResult` içindeki metin ve byte
+aralıklarını kullanabilir. Önceden kaydedilen sonuçlar için aynı paketin düzeltmesi:
+
+```php
+$types = [];
+foreach ($result->getTokenMap() as $token => $_) {
+    $types[$token] = $result->map?->getType($token) ?? 'PII';
+}
+$snapshot = [
+    'hash' => hash('sha256', $source),
+    'text' => $result->redactedText,
+    'map' => $result->getTokenMap(),
+    'types' => $types,
+    'spans' => array_map(static fn ($span) => [
+        'start' => $span->startOffset,
+        'end' => $span->endOffset,
+        'token' => $span->replacement,
+    ], $result->spans),
+];
+$snapshot = \Redakte\Support\RedactionSnapshotRepair::apply($snapshot, $source);
+```
+
+Bu yardımcı, geri açılabilir TAG sonuçlarının sunucuda tutulan güvenilir snapshot'ları
+içindir. `map` ham kişisel veri içerir; istemciye gönderilmemeli ve güvenli saklanmalıdır.
+Kaynak verilmezse haritadan yeniden oluşturulur ve hash doğrulanır. Eksik, çakışan veya
+metinle uyuşmayan aralıklar düzeltilmez. İşlem ağ/LLM çağrısı yapmaz; aynı tokenın yalnız
+hatalı kullanımını açar. Yayımlanmış eski `config/redakte.php` içindeki varsayılan
+`PLAKA_CLASSIC` regex'i tutuluyorsa yeni paket varsayılanıyla güncellenmelidir.
+
 ### Composer ile Yükleme
 
 ```bash

@@ -29,6 +29,10 @@ final readonly class LlmOptions
     public int $outputTokenReserve;
     public float $totalTimeoutSeconds;
 
+    public const PLATE_GUIDANCE = ' Sayıları, madde/sıra numaralarını, tarihleri ve tutarları sırf sayı içerdikleri için PLAKA olarak işaretleme. '
+        . '24 ve 25, 60 ile 72 ve 12 TL 50 kuruş gibi ifadeler plaka değildir. '
+        . 'Harf-rakam biçiminin yanında bağlamı da değerlendir; açıkça plaka olarak belirtilen gerçek plakaları korumasız bırakma.';
+
     public const DEFAULT_SYSTEM_PROMPT = 'Türkçe metinlerdeki hassas kişisel verileri tespit et. '
         . 'Kişi adlarını, açık adresleri ve izin verilen diğer kişisel veri türlerini bağlamıyla değerlendir. '
         . 'Doğum tarihi, kimlik/pasaport, hesap/müşteri numarası, kullanıcı adı ve parolaları da denetle. '
@@ -36,7 +40,8 @@ final readonly class LlmOptions
         . 've ceza/güvenlik tedbiri bilgilerini izin verilen uygun türle işaretle. '
         . 'Genel bir konudan söz edilmesini kişisel veri sanma; kişiye ait bilgiyi taşıyan en dar tam ifadeyi seç. '
         . 'Kurum adlarını, genel kavramları ve kanun/madde atıflarını kişi adı olarak işaretleme. '
-        . 'Yalnızca kaynak metinde açıkça bulunan ifadeleri seç; tahminde bulunma.';
+        . 'Yalnızca kaynak metinde açıkça bulunan ifadeleri seç; tahminde bulunma.'
+        . self::PLATE_GUIDANCE;
 
     public static function resolve(array $base = [], self|array|bool|null $override = null): self
     {
