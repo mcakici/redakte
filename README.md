@@ -1,6 +1,7 @@
 # Redakte - PHP & Laravel Kişisel Veri Redaksiyon ve Anonimleştirme Paketi
 
-[![Latest Version](https://img.shields.io/packagist/v/mcakici/redakte.svg?style=flat-square&label=version)](https://packagist.org/packages/mcakici/redakte)
+[![Latest Release](https://img.shields.io/github/v/release/mcakici/redakte.svg?style=flat-square&label=version&cacheSeconds=300)](https://github.com/mcakici/redakte/releases/latest)
+[![Packagist](https://img.shields.io/badge/Packagist-mcakici%2Fredakte-orange?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Tests](https://github.com/mcakici/redakte/actions/workflows/tests.yml/badge.svg)](https://github.com/mcakici/redakte/actions/workflows/tests.yml)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-777bb4.svg?style=flat-square)](composer.json)
