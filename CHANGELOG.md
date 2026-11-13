@@ -2,6 +2,16 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.5] - 2026-11-13
+
+### Kaynak eşleştirme ve kurtarma
+
+- Farklı ve tekrar eden ifadeleri gösteren somut JSON örnekleri ile parça bağımsızlığı ve harfiyen kopyalama talimatları eklendi.
+- Modelin `occurrence` alanını liste sıra numarası gibi doldurması işlemi bozmaz. Doğrulanmış değerin kaynakta kelime/sayı sınırlarına uyan tüm tekrarları maskelenir; yinelenen adaylar tekilleştirilir.
+- Kaynakta bulunmayan aday için yalnız reddedilen pencere örtüşmeli küçültülüp yeniden taranır. Başarılı pencereler korunur; mevcut süre, parça sayısı ve derinlik sınırları geçerlidir. Kurtarılamayan yanıtta yeni `LlmSourceMismatchException` ile güvenli hata davranışı korunur; aday atlama veya ham metne düşme yoktur.
+- Beş yeni regresyon ile yanlış sayaçlar, UTF-8 koordinatları, tekrar kapsamı, kelime/sayı sınırları, tam pencere kurtarması ve sınırlı hata davranışı doğrulandı. Toplam 169 test / 569 assertion geçti.
+- Gerçek Ornith-1.5:35b yanıtlarıyla tekrar sayacı hatası ve kaynak dışı aday yeniden üretildi; belge kurtarması canlı endpoint üzerinde doğrulandı. Bu kontrol, modelin bütün kişisel verileri kusursuz tespit ettiği anlamına gelmez.
+
 ## [1.0.4] - 2026-11-13
 
 ### Hibrit tespitlerde kapsam güvenliği

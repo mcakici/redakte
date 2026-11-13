@@ -159,6 +159,103 @@ class LlmRedactionTest extends TestCase
         }
     }
 
+    public function test_source_controls_all_repeated_spans_when_model_counts_entities_instead_of_occurrences(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'KISI', 'text' => 'zelora tavren', 'occurrence' => 9],
+            ['type' => 'KISI', 'text' => 'nalora sivren', 'occurrence' => PHP_INT_MAX],
+            ['type' => 'KISI', 'text' => 'zelora tavren', 'occurrence' => 1],
+        ]);
+        $source = "Şişli: zelora\u{00a0}tavren; nalora sivren; zelora\u{00a0}tavren.";
+        $result = $this->redactor($transport)->redact($source, ['llm' => $this->settings()]);
+
+        self::assertSame('Şişli: [KISI_1]; [KISI_2]; [KISI_1].', $result->redactedText);
+        self::assertCount(3, $result->spans);
+        self::assertCount(1, $transport->calls);
+        self::assertSame($source, $result->map->unmask($result->redactedText));
+        foreach ($result->spans as $span) {
+            self::assertSame($span->originalValue, substr($source, $span->startOffset, $span->length()));
+        }
+    }
+
+    public function test_source_mismatch_rescans_the_entire_rejected_window_and_preserves_tail_coverage(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->reply = static function (array $payload): array {
+            $chunk = json_decode($payload['messages'][1]['content'], true)['text'];
+            $entities = [];
+            if (strlen($chunk) > 250) {
+                $entities[] = ['type' => 'KISI', 'text' => 'hayali kişi', 'occurrence' => 1];
+            } else {
+                foreach (['zelora tavren', 'nalora sivren'] as $value) {
+                    if (str_contains($chunk, $value)) {
+                        $entities[] = ['type' => 'KISI', 'text' => $value, 'occurrence' => 7];
+                    }
+                }
+            }
+            return ['done' => true, 'message' => ['content' => json_encode(['entities' => $entities])]];
+        };
+        $source = 'zelora tavren '.str_repeat('olağan açıklama ', 40).'nalora sivren';
+        $result = $this->redactor($transport)->redact($source, ['llm' => $this->settings()]);
+
+        self::assertGreaterThan(1, count($transport->calls));
+        self::assertStringStartsWith('[KISI_1]', $result->redactedText);
+        self::assertStringEndsWith('[KISI_2]', $result->redactedText);
+        self::assertSame($source, $result->map->unmask($result->redactedText));
+        self::assertStringNotContainsString('hayali', json_encode($result));
+    }
+
+    public function test_repeated_source_matching_preserves_word_and_identifier_boundaries(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([
+            ['type' => 'KISI', 'text' => 'Ali', 'occurrence' => 12],
+            ['type' => 'DIGER_KISISEL', 'text' => '123', 'occurrence' => 8],
+        ]);
+        $result = $this->redactor($transport)->redact('Ali; Alim; ÖAli; Aliö; 123; 91234; Ali.', ['llm' => $this->settings()]);
+
+        self::assertSame('[KISI_1]; Alim; ÖAli; Aliö; [DIGER_KISISEL_1]; 91234; [KISI_1].', $result->redactedText);
+        self::assertCount(3, $result->spans);
+    }
+
+    public function test_source_recovery_keeps_accepted_windows_and_obeys_the_chunk_limit(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->reply = static function (array $payload): array {
+            $chunk = json_decode($payload['messages'][1]['content'], true)['text'];
+            $value = str_contains($chunk, 'HEAD') ? 'HEAD' : 'kaynakta olmayan kişi';
+            return ['done' => true, 'message' => ['content' => json_encode(['entities' => [
+                ['type' => 'KISI', 'text' => $value, 'occurrence' => 1],
+            ]])]];
+        };
+        try {
+            $this->redactor($transport)->redact('HEAD '.str_repeat('normal ', 70), ['llm' => $this->settings([
+                'chunk_size' => 256, 'chunk_overlap' => 0, 'max_chunks' => 2,
+            ])]);
+            self::fail('Kurtarma max_chunks sınırını aşmamalı.');
+        } catch (LlmDetectionException $error) {
+            self::assertStringContainsString('max_chunks', $error->getMessage());
+            self::assertCount(2, $transport->calls);
+            $inputs = array_map(static fn ($call) => json_decode($call['payload']['messages'][1]['content'], true)['text'], $transport->calls);
+            self::assertStringContainsString('HEAD', $inputs[0]);
+            self::assertStringNotContainsString('HEAD', $inputs[1]);
+        }
+    }
+
+    public function test_unrecoverable_source_mismatch_is_bounded_and_never_returns_partial_redaction(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([['type' => 'KISI', 'text' => 'kaynakta olmayan kişi', 'occurrence' => 1]]);
+        try {
+            $this->redactor($transport)->redact(str_repeat('olağan kaynak metni ', 80), ['llm' => $this->settings()]);
+            self::fail('Doğrulanmamış aday sessiz başarıya dönüşmemeli.');
+        } catch (\Redakte\Exceptions\LlmSourceMismatchException $error) {
+            self::assertLessThanOrEqual(5, count($transport->calls));
+            self::assertStringNotContainsString('kaynakta olmayan', $error->getMessage());
+        }
+    }
+
     public static function invalidReplies(): array
     {
         return [
