@@ -2,6 +2,17 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.8] - 2026-11-14
+
+### Kaynak doğrulama ve sınırlı kurtarma
+
+- LLM'nin yalnız boşluk/satır düzenini değiştirdiği adaylar gerçek kaynak aralıklarına bağlanır. Harf, rakam, noktalama ve kelime/sayı sınırları değiştirilmez; bulanık eşleştirme yoktur.
+- Model çıktısından regex derlenmez; uzun adaylar ve regex özel karakterleri kaynak byte'larıyla güvenle eşleştirilir. Bütün doğrulanmış tekrarlar orijinal değer ve koordinatlarıyla maskelenir.
+- Kaynak uyuşmazlığında aynı pencere, örnek değer içermeyen farklı talimatla bir kez yeniden taranır; doğrulanamazsa mevcut örtüşmeli küçültme uygulanır. Başarılı pencereler, toplam süre, parça sayısı ve dört seviye sınırı korunur.
+- Kaynakta olmayan aday atlanmaz; kurtarılamayan sonuç hata vermeye devam eder. İkinci bir tam belge taraması yapmak yerine paket kurtarmasının sonucunu kullanma önerisi belgelendi.
+- README'ye yükseltme ve hata sözleşmesi eklendi; Packagist rozeti gerçek yayımlanmış paket sürümünü gösterir.
+- PHP 8.4: 216 test / 683 assertion geçti. Sentetik model/HTTP regresyonlarıdır; üretim Ornith doğruluğu veya sıfır başarısızlık garantisi değildir.
+
 ## [1.0.7] - 2026-11-14
 
 ### Plaka bağlamı ve ortak redaksiyon kuralları

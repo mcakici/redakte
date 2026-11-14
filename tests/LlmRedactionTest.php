@@ -49,6 +49,62 @@ final class RecordingLlmTransport implements LlmTransportInterface
 
 class LlmRedactionTest extends TestCase
 {
+    public function test_layout_only_model_changes_preserve_original_spans_and_reversible_values(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->entities([['type' => 'KISI', 'text' => 'Zelora Tavren', 'occurrence' => 1]]);
+        $source = "Davacı: Zelora\n   Tavren. Vekil: Zelora\n   Tavren.";
+        $result = $this->redactor($transport)->redact($source, ['llm' => $this->settings()]);
+        self::assertCount(2, $result->spans);
+        self::assertStringNotContainsString('Zelora', $result->redactedText);
+        self::assertSame($source, $result->unmask($result->redactedText));
+        self::assertCount(1, $transport->calls);
+        foreach ($result->spans as $span) {
+            self::assertSame($span->originalValue, substr($source, $span->startOffset, $span->length()));
+        }
+    }
+
+    public function test_short_source_mismatch_gets_one_different_example_free_repair_request(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->reply = static function (array $payload): array {
+            $repair = str_contains($payload['messages'][0]['content'], 'Önceki çıkarım');
+            if ($repair) {
+                self::assertStringNotContainsString('Nilora Savren', $payload['messages'][0]['content']);
+            }
+            return ['done' => true, 'message' => ['content' => json_encode(['entities' => [[
+                'type' => 'KISI', 'text' => $repair ? 'Zelora Tavren' : 'Olmayan Kişi', 'occurrence' => 1,
+            ]]])]];
+        };
+        $source = 'Davacı: Zelora Tavren.';
+        $result = $this->redactor($transport)->redact($source, ['llm' => $this->settings()]);
+        self::assertSame('Davacı: [KISI_1].', $result->redactedText);
+        self::assertSame($source, $result->unmask($result->redactedText));
+        self::assertCount(2, $transport->calls);
+        self::assertSame($transport->calls[0]['payload']['messages'][1], $transport->calls[1]['payload']['messages'][1]);
+    }
+
+    public function test_repair_cannot_reset_the_original_total_deadline_or_return_partial_redaction(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->reply = static function (array $payload): array {
+            $repair = str_contains($payload['messages'][0]['content'], 'Önceki çıkarım');
+            if ($repair) {
+                usleep(30_000);
+            }
+            return ['done' => true, 'message' => ['content' => json_encode(['entities' => [[
+                'type' => 'KISI', 'text' => $repair ? 'Zelora Tavren' : 'Olmayan Kişi', 'occurrence' => 1,
+            ]]])]];
+        };
+        try {
+            $this->redactor($transport)->redact('Zelora Tavren', ['llm' => $this->settings(['total_timeout_seconds' => 0.01])]);
+            self::fail('Expired repair must not be accepted.');
+        } catch (LlmDetectionException $error) {
+            self::assertSame('LLM işlemi toplam zaman sınırını aştı.', $error->getMessage());
+            self::assertCount(2, $transport->calls);
+        }
+    }
+
     public function test_plate_suggestions_are_filtered_by_occurrence_before_overlap_resolution(): void
     {
         $transport = new RecordingLlmTransport();
@@ -280,7 +336,7 @@ class LlmRedactionTest extends TestCase
             self::fail('Kurtarma max_chunks sınırını aşmamalı.');
         } catch (LlmDetectionException $error) {
             self::assertStringContainsString('max_chunks', $error->getMessage());
-            self::assertCount(2, $transport->calls);
+            self::assertCount(3, $transport->calls); // Accepted head, rejected tail, one repair of tail.
             $inputs = array_map(static fn ($call) => json_decode($call['payload']['messages'][1]['content'], true)['text'], $transport->calls);
             self::assertStringContainsString('HEAD', $inputs[0]);
             self::assertStringNotContainsString('HEAD', $inputs[1]);
@@ -295,7 +351,7 @@ class LlmRedactionTest extends TestCase
             $this->redactor($transport)->redact(str_repeat('olağan kaynak metni ', 80), ['llm' => $this->settings()]);
             self::fail('Doğrulanmamış aday sessiz başarıya dönüşmemeli.');
         } catch (\Redakte\Exceptions\LlmSourceMismatchException $error) {
-            self::assertLessThanOrEqual(5, count($transport->calls));
+            self::assertLessThanOrEqual(10, count($transport->calls)); // Four splits, one repair per window.
             self::assertStringNotContainsString('kaynakta olmayan', $error->getMessage());
         }
     }

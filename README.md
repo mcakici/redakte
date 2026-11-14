@@ -1,7 +1,7 @@
 # Redakte - PHP & Laravel Kişisel Veri Redaksiyon ve Anonimleştirme Paketi
 
 [![Latest Release](https://img.shields.io/github/v/release/mcakici/redakte.svg?style=flat-square&label=version&cacheSeconds=300)](https://github.com/mcakici/redakte/releases/latest)
-[![Packagist](https://img.shields.io/badge/Packagist-mcakici%2Fredakte-orange?style=flat-square)](https://packagist.org/packages/mcakici/redakte)
+[![Packagist](https://img.shields.io/packagist/v/mcakici/redakte.svg?style=flat-square&label=packagist&cacheSeconds=300)](https://packagist.org/packages/mcakici/redakte)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Tests](https://github.com/mcakici/redakte/actions/workflows/tests.yml/badge.svg)](https://github.com/mcakici/redakte/actions/workflows/tests.yml)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-777bb4.svg?style=flat-square)](composer.json)
@@ -52,6 +52,31 @@
 ---
 
 ## 📦 Kurulum
+
+### 1.0.8: Kaynak eşleştirme ve sınırlı LLM kurtarması
+
+```bash
+composer require mcakici/redakte:^1.0.8
+```
+
+Modelin yalnız boşluk/satır düzenini değiştirdiği ifadeler kaynakta yeniden doğrulanır.
+Harfler, rakamlar, büyük/küçük harf ve noktalama aynen eşleşmelidir; bulanık isim veya
+kimlik numarası düzeltmesi yapılmaz. Tespit aralıkları ve değerleri model çıktısından
+değil, gerçek kaynak byte'larından alınır. Aynı ifadenin farklı boşluk düzenindeki
+tüm tekrarları kapsanır; kelime ve sayı sınırları korunur.
+
+Kaynak uyuşmazlığında ilgili pencere bir kez farklı, örnek değer içermeyen talimatla
+yeniden taranır. Sonuç yine doğrulanamazsa yalnız o pencere örtüşmeli küçültülür.
+Başarılı pencereler tekrar çağrılmaz. Bütün istekler aynı toplam süre, parça sayısı ve
+dört bölme seviyesi sınırına tabidir; kurtarılamayan adayda işlem hâlâ hata verir.
+Uygulama, bu hatadan sonra bütün belgeyi aynı deterministik ayarlarla tekrar
+taramamalıdır. Bağlantı, model veya süre sorunu ham metne otomatik geçiş sebebi değildir.
+
+Bu sürüm LLM kaynak uyuşmazlığına yönelik regresyonları düzeltir; gerçek modelde
+sıfır hata veya bütün kişisel verilerin tespiti garantisi vermez. Üretimde başarısız
+belgeleri sürüm yükseltmesinden sonra yeniden işleyip kalan hata kodlarını izleyin.
+Span'lar orijinal byte'ları korur; oturum haritası kanonik olarak aynı değere aynı tokenı
+verir ve geri açmada o tokenın ilk kaydedilmiş yazımını kullanır.
 
 ### 1.0.7: Ortak plaka kuralları ve kaydedilmiş sonuçlar
 
