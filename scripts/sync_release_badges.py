@@ -60,7 +60,9 @@ def sync(readme_path, wait_seconds=900):
             # rerunning an older release's workflow must never roll the badges back.
             release = fetch_json(f"https://api.github.com/repos/{REPOSITORY}/releases/latest", os.environ.get("GITHUB_TOKEN"))
             version = release_version(release)
-            payload = fetch_json(f"https://repo.packagist.org/p2/{PACKAGE}.json?release={quote(version, safe='')}")
+            # repo.packagist.org can retain an old regional edge response even
+            # after publication. The origin endpoint honors unique query keys.
+            payload = fetch_json(f"https://packagist.org/p2/{PACKAGE}.json?release={quote(version, safe='')}&check={time.time_ns()}")
             require_packagist_version(payload, version)
             break
         except (URLError, TimeoutError, ValueError) as error:
