@@ -25,7 +25,7 @@ class ReleaseBadgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             readme = Path(directory) / "README.md"
             readme.write_text(README, encoding="utf-8")
-            replies = [{"tag_name": "v1.0.8"}, {"packages": {"mcakici/redakte": [{"version": "1.0.8"}]}}]
+            replies = [{"tag_name": "v1.0.8"}, {"package": {"name": "mcakici/redakte", "versions": {"1.0.8": {}}}}]
             with patch("scripts.sync_release_badges.fetch_json", side_effect=replies * 2):
                 self.assertEqual(("v1.0.8", True), sync(readme, 0))
                 self.assertEqual(("v1.0.8", False), sync(readme, 0))
@@ -34,7 +34,7 @@ class ReleaseBadgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             readme = Path(directory) / "README.md"
             readme.write_text(README, encoding="utf-8")
-            replies = [{"tag_name": "v1.0.8"}, {"packages": {"mcakici/redakte": [{"version": "v1.0.7"}]}}]
+            replies = [{"tag_name": "v1.0.8"}, {"package": {"name": "mcakici/redakte", "versions": {"v1.0.7": {}}}}]
             with patch("scripts.sync_release_badges.fetch_json", side_effect=replies):
                 with self.assertRaisesRegex(RuntimeError, "README was not changed"):
                     sync(readme, 0)
@@ -44,15 +44,15 @@ class ReleaseBadgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             readme = Path(directory) / "README.md"
             readme.write_text(README, encoding="utf-8")
-            replies = [{"tag_name": "v1.0.8"}, {"packages": {"mcakici/redakte": [{"version": "v1.0.7"}]}},
-                       {"tag_name": "v1.0.8"}, {"packages": {"mcakici/redakte": [{"version": "v1.0.8"}]}}]
+            replies = [{"tag_name": "v1.0.8"}, {"package": {"name": "mcakici/redakte", "versions": {"v1.0.7": {}}}},
+                       {"tag_name": "v1.0.8"}, {"package": {"name": "mcakici/redakte", "versions": {"v1.0.8": {}}}}]
             with patch("scripts.sync_release_badges.fetch_json", side_effect=replies) as fetch, \
                  patch("scripts.sync_release_badges.time.sleep"), \
                  patch("scripts.sync_release_badges.time.time_ns", side_effect=[1, 2]):
                 self.assertEqual(("v1.0.8", True), sync(readme, 30))
             urls = [call.args[0] for call in fetch.call_args_list if "packagist.org" in call.args[0]]
             self.assertEqual(2, len(urls))
-            self.assertTrue(all(url.startswith("https://packagist.org/p2/") for url in urls))
+            self.assertTrue(all(url.startswith("https://packagist.org/packages/") for url in urls))
             self.assertNotEqual(urls[0], urls[1])
 
     def test_prereleases_drafts_and_unsafe_tags_are_rejected(self):

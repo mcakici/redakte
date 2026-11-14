@@ -31,9 +31,12 @@ def release_version(release):
 
 
 def require_packagist_version(payload, version):
-    versions = payload.get("packages", {}).get(PACKAGE, [])
-    if not any(item.get("version", "").lstrip("v") == version.lstrip("v") for item in versions):
-        raise ValueError(f"Packagist has not indexed {version} yet.")
+    package = payload.get("package", {})
+    if package.get("name") != PACKAGE:
+        raise ValueError("Packagist returned metadata for an unexpected package.")
+    versions = list(package.get("versions", {}))
+    if not any(item.lstrip("v") == version.lstrip("v") for item in versions):
+        raise ValueError(f"Packagist has not indexed {version} yet; available versions: {versions[:5]}.")
 
 
 def render_badges(readme, version):
@@ -60,9 +63,9 @@ def sync(readme_path, wait_seconds=900):
             # rerunning an older release's workflow must never roll the badges back.
             release = fetch_json(f"https://api.github.com/repos/{REPOSITORY}/releases/latest", os.environ.get("GITHUB_TOKEN"))
             version = release_version(release)
-            # repo.packagist.org can retain an old regional edge response even
-            # after publication. The origin endpoint honors unique query keys.
-            payload = fetch_json(f"https://packagist.org/p2/{PACKAGE}.json?release={quote(version, safe='')}&check={time.time_ns()}")
+            # Composer's distributed p2 index can lag behind publication. Read the
+            # canonical package record, with a fresh key to bypass its HTTP cache.
+            payload = fetch_json(f"https://packagist.org/packages/{PACKAGE}.json?release={quote(version, safe='')}&check={time.time_ns()}")
             require_packagist_version(payload, version)
             break
         except (URLError, TimeoutError, ValueError) as error:
