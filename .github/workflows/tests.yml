@@ -7,6 +7,13 @@ on:
     branches: [ main, master ]
 
 jobs:
+  badge-updater:
+    name: Release badge updater
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s scripts/tests -v
+
   test:
     runs-on: ubuntu-latest
     strategy:

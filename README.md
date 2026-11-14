@@ -53,6 +53,15 @@
 
 ## 📦 Kurulum
 
+### Sürüm rozetlerinin otomatik güncellenmesi
+
+Her kararlı GitHub release yayımlandığında [Sync release badges](.github/workflows/release-badges.yml)
+iş akışı, sürümün Composer'ın Packagist metadata'sında bulunduğunu doğrular ve iki
+rozeti README'de otomatik günceller. Resim adresi sürümü içerir; eski resim önbelleği
+yeni sürüm için kullanılmaz. Packagist henüz güncellenmemişse en fazla 15 dakika
+beklenir; doğrulama başarısızsa README değiştirilmez. İş akışı Actions ekranından
+elle de yeniden çalıştırılabilir; eski bir çalıştırmayı tekrarlamak sürümü geriye almaz.
+
 ### 1.0.8: Kaynak eşleştirme ve sınırlı LLM kurtarması
 
 ```bash
