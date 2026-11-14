@@ -67,7 +67,7 @@ def sync(readme_path, wait_seconds=900):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise RuntimeError("Release metadata could not be verified; README was not changed.") from error
-            print("Waiting for verified release metadata...", flush=True)
+            print(f"Waiting for verified release metadata: {error}", flush=True)
             time.sleep(min(15, remaining))
 
     original = readme_path.read_text(encoding="utf-8")
