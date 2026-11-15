@@ -23,6 +23,9 @@ use Redakte\Detectors\TcknDetector;
 use Redakte\Detectors\VknDetector;
 use Redakte\Normalization\NormalizedText;
 use Redakte\Llm\OllamaDetector;
+use Redakte\Llm\LlmOptions;
+use Redakte\Exceptions\LlmDetectionException;
+use Redakte\Exceptions\InvalidConfigurationException;
 use Redakte\Result\RedactionWarning;
 use Redakte\Support\ReplacementEngine;
 use Redakte\Token\RedactionSession;
@@ -106,12 +109,29 @@ class RedactionService
         // 1. Aşama: DETECT — Bütün dedektörler normalize edilmiş metinden aday üretir
         $allCandidates = [];
         $acceptedPlates = null;
+        $llmFailed = false;
         foreach ([...$this->detectors, $this->llmDetector] as $detector) {
-            $candidates = $detector->detect($normText, $context);
+            try {
+                $candidates = $detector->detect($normText, $context);
+            } catch (LlmDetectionException|InvalidConfigurationException $error) {
+                // Only an explicitly configured optional LLM layer may degrade.
+                // Deterministic detector failures and invalid configurations still fail.
+                $base = $this->registry->get('llm', []);
+                if ($detector !== $this->llmDetector || !is_array($base)
+                    || LlmOptions::resolve($base, $options->llm)->failureMode !== 'rules_only') {
+                    throw $error;
+                }
+                $llmFailed = true;
+                $candidates = [];
+            }
             if (!empty($candidates)) {
                 foreach ($candidates as $candidate) {
                     [$origStart, $origEnd] = $normalized->mapSpanToOriginal($candidate->startOffset, $candidate->endOffset);
                     $origValue = substr($text, $origStart, $origEnd - $origStart);
+                    if ($this->registry->get('preserve_legal_facts', false)
+                        && \Redakte\Support\LegalFactContext::isFalsePositive($text, $origStart, $origEnd, $candidate->entityType)) {
+                        continue;
+                    }
                     if ($candidate->entityType === 'KISI' && \Redakte\Support\NameContext::isInstructionPhrase($text, $origStart, $origEnd)) {
                         continue;
                     }
@@ -183,6 +203,15 @@ class RedactionService
             $warnings[] = new RedactionWarning(
                 code: 'LLM_SUGGESTION_APPLIED', severity: 'medium',
                 message: 'Kaynak metinde doğrulanan LLM önerileri uygulandı; anlamsal doğruluk için insan incelemesi önerilir.',
+            );
+        }
+        if ($llmFailed) {
+            $requiresHumanReview = true;
+            $riskLevel = 'high';
+            $status = 'review_required';
+            $warnings[] = new RedactionWarning(
+                code: 'LLM_DETECTION_FAILED', severity: 'high',
+                message: 'LLM tespiti tamamlanamadı; yalnız yerel kurallar uygulandı. Bağlamsal kişisel veriler eksik maskelenmiş olabilir.',
             );
         }
 

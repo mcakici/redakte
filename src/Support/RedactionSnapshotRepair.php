@@ -7,7 +7,7 @@ namespace Redakte\Support;
 /** Deterministic, occurrence-specific corrections without re-running the LLM. */
 final class RedactionSnapshotRepair
 {
-    public static function apply(array $snapshot, ?string $source = null): array
+    public static function apply(array $snapshot, ?string $source = null, bool $preserveLegalFacts = false): array
     {
         if (!is_string($snapshot['text'] ?? null) || !is_array($snapshot['map'] ?? null)
             || !is_array($snapshot['types'] ?? null) || !is_array($snapshot['spans'] ?? null)) {
@@ -37,9 +37,10 @@ final class RedactionSnapshotRepair
         foreach ($snapshot['spans'] as $span) {
             $type = $snapshot['types'][$span['token'] ?? ''] ?? '';
             $mistake = $type === 'KISI' && NameContext::isInstructionPhrase($source, $span['start'], $span['end']);
+            $mistake = $mistake || ($preserveLegalFacts && LegalFactContext::isFalsePositive($source, $span['start'], $span['end'], $type));
             if ($type === 'PLAKA') {
                 $accepted ??= PlateContext::acceptedRanges($source);
-                $mistake = PlateContext::isFalsePositive($source, $span['start'], $span['end'], $accepted);
+                $mistake = $mistake || PlateContext::isFalsePositive($source, $span['start'], $span['end'], $accepted);
             }
             if ($mistake) {
                 $changed = true;

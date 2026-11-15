@@ -28,6 +28,24 @@ final readonly class LlmOptions
     public float $estimatedBytesPerToken;
     public int $outputTokenReserve;
     public float $totalTimeoutSeconds;
+    public string $failureMode;
+
+    public const IDENTIFIER_TYPES = [
+        'TCKN', 'VKN', 'MERSIS', 'IBAN', 'TELEFON', 'EPOSTA', 'KISI', 'ADRES', 'PLAKA',
+        'KREDI_KARTI', 'ESAS_NO', 'KARAR_NO', 'DOSYA_NO', 'IP_ADRESI', 'DOGUM_TARIHI',
+        'KIMLIK_NO', 'HESAP_NO', 'MUSTERI_NO', 'KULLANICI_ADI', 'SIFRE', 'KONUM', 'BANKA',
+        'BIYOMETRIK', 'GENETIK',
+    ];
+
+    public const IDENTIFIERS_SYSTEM_PROMPT = 'Yalnız kişiyi doğrudan tanımlayan bilgileri kaynaktan aynen çıkar: '
+        . 'ad-soyad, TC/kimlik/pasaport, plaka, kişiye ait şehir/ilçe ve açık adres, telefon/e-posta, '
+        . 'IBAN, banka adı ve hesap/müşteri numarası, kullanıcı adı/parola, açıkça belirtilmiş doğum tarihi. '
+        . 'Kişiyle bağlantılı banka adını BANKA, şehir/ilçeyi KONUM olarak sınıflandır. '
+        . 'Ceza/süre (3 yıl, 21 gün), normal olay/sözleşme/tebliğ tarihleri, tutarlar, kanun/madde ve sözleşme adları, '
+        . 'kurum adları ve genel kavramlar kişisel tanımlayıcı değildir; bunları çıkarma. '
+        . 'Bir kişiyle aynı cümlede bulunması olay bilgisini kişisel tanımlayıcı yapmaz. '
+        . 'Kişi adının en dar tam halini seç; sıfat, olay, süre veya sözleşme adını içine alma. '
+        . 'Adları etiketlerle değiştirme; numaralandırmayı uygulama yapar. Tahmin ve yazım düzeltmesi yapma.';
 
     public const PLATE_GUIDANCE = ' Sayıları, madde/sıra numaralarını, tarihleri ve tutarları sırf sayı içerdikleri için PLAKA olarak işaretleme. '
         . '24 ve 25, 60 ile 72 ve 12 TL 50 kuruş gibi ifadeler plaka değildir. '
@@ -78,12 +96,17 @@ final readonly class LlmOptions
             'timeout_seconds', 'max_response_bytes', 'chunk_size', 'chunk_overlap',
             'max_chunks', 'entity_types', 'keep_alive', 'think', 'thinking', 'enable_thinking',
             'reasoning_effort', 'show_endpoint', 'context_safety_margin', 'estimated_bytes_per_token',
-            'output_token_reserve', 'total_timeout_seconds'];
+            'output_token_reserve', 'total_timeout_seconds', 'failure_mode'];
         foreach (array_keys($config) as $key) {
             if (!in_array($key, $allowed, true)) {
                 throw new InvalidConfigurationException('Bilinmeyen LLM ayarı. Model parametrelerini llm.options içinde verin.');
             }
         }
+        $failureMode = $config['failure_mode'] ?? 'throw';
+        if (!is_string($failureMode) || !in_array($failureMode, ['throw', 'rules_only'], true)) {
+            throw new InvalidConfigurationException('llm.failure_mode throw veya rules_only olmalıdır.');
+        }
+        $this->failureMode = $failureMode;
         $enabled = $config['enabled'] ?? null;
         if ($enabled !== null && !is_bool($enabled)) {
             throw new InvalidConfigurationException('llm.enabled boolean veya null olmalıdır.');

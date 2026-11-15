@@ -39,6 +39,7 @@ return [
         'KULLANICI_ADI' => ['label' => 'kişisel kullanıcı adı', 'label_plural' => 'kullanıcı adı'],
         'SIFRE' => ['label' => 'parola/erişim sırrı', 'label_plural' => 'parola/erişim sırrı'],
         'KONUM' => ['label' => 'kişiye ait hassas konum', 'label_plural' => 'konum bilgisi'],
+        'BANKA' => ['label' => 'kişiye ait banka adı', 'label_plural' => 'banka bilgisi'],
         'SAGLIK' => ['label' => 'kişiye ait sağlık bilgisi', 'label_plural' => 'sağlık bilgisi'],
         'BIYOMETRIK' => ['label' => 'kişiye ait biyometrik veri', 'label_plural' => 'biyometrik veri'],
         'GENETIK' => ['label' => 'kişiye ait genetik veri', 'label_plural' => 'genetik veri'],
@@ -74,8 +75,12 @@ return [
      * enabled=false: bilgiler verilse de kapalı. Model seçenekleri options içinde aktarılır.
      * Bu URL'leri ve başlıkları yalnızca güvenilir uygulama yapılandırmasından alın.
      */
+    'preserve_legal_facts' => false,
+
     'llm' => [
         'enabled' => null,
+        // throw: LLM hatasını ilet; rules_only: yerel kurallarla tamamla ve sonuçta uyarı üret.
+        'failure_mode' => 'throw',
         'endpoint' => null, // Örn. http://127.0.0.1:11434/api/chat
         'model' => null,
         'system_prompt' => \Redakte\Llm\LlmOptions::DEFAULT_SYSTEM_PROMPT,

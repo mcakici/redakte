@@ -49,6 +49,88 @@ final class RecordingLlmTransport implements LlmTransportInterface
 
 class LlmRedactionTest extends TestCase
 {
+    public function test_identifier_profile_preserves_facts_and_numbers_distinct_people_consistently(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $entities = [];
+        foreach (['Ayşe Demir', 'Mehmet Kaya', 'Ali Yıldız', '3 yıl', '21 gün', 'Kira Sözleşmesi', 'Türk Borçlar Kanunu'] as $value) {
+            $entities[] = ['type' => 'KISI', 'text' => $value, 'occurrence' => 1];
+        }
+        foreach ([['12.05.2026', 'DOGUM_TARIHI'], ['12.05.1980', 'DOGUM_TARIHI'], ['İstanbul', 'KONUM'], ['Ziraat Bankası', 'BANKA']] as [$value, $type]) {
+            $entities[] = ['type' => $type, 'text' => $value, 'occurrence' => 1];
+        }
+        $transport->entities($entities);
+        $source = 'Ayşe Demir; Mehmet Kaya; Ali Yıldız; Ayşe Demir. Ceza: 3 yıl 21 gün. Kira Sözleşmesi. Türk Borçlar Kanunu. '
+            .'Tebliğ: 12.05.2026. Doğum tarihi: 12.05.1980. İkamet: İstanbul. Bankam: Ziraat Bankası.';
+        $result = $this->redactor($transport, ['preserve_legal_facts' => true])->redact($source, ['llm' => $this->settings([
+            'entity_types' => LlmOptions::IDENTIFIER_TYPES, 'system_prompt' => LlmOptions::IDENTIFIERS_SYSTEM_PROMPT,
+        ])]);
+        self::assertStringStartsWith('[KISI_1]; [KISI_2]; [KISI_3]; [KISI_1].', $result->redactedText);
+        self::assertStringContainsString('Ceza: 3 yıl 21 gün. Kira Sözleşmesi. Türk Borçlar Kanunu. Tebliğ: 12.05.2026.', $result->redactedText);
+        self::assertStringNotContainsString('12.05.1980', $result->redactedText);
+        self::assertStringNotContainsString('İstanbul', $result->redactedText);
+        self::assertStringNotContainsString('Ziraat Bankası', $result->redactedText);
+        self::assertSame($source, $result->unmask($result->redactedText));
+    }
+
+    #[DataProvider('optionalLlmFailures')]
+    public function test_optional_llm_failure_keeps_deterministic_masking_and_reports_degraded_coverage(string $failure): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->reply = static function () use ($failure): array {
+            if ($failure === 'connection') {
+                throw new LlmDetectionException('LLM endpoint bağlantısı kurulamadı.');
+            }
+            return match ($failure) {
+                'source_mismatch' => ['done' => true, 'message' => ['content' => '{"entities":[{"type":"KISI","text":"Kaynakta Olmayan","occurrence":1}]}']],
+                'output_limit' => ['done' => false, 'message' => ['content' => '{"entities":[]}']],
+                default => ['done' => true, 'message' => ['content' => 'invalid private model output']],
+            };
+        };
+        $source = 'E-posta: kisi@example.test; telefon: 0532 123 45 67. Ceza: 3 yıl 4 ay.';
+        $redactor = $this->redactor($transport, rules: true);
+        $result = $redactor->redact($source, ['llm' => $this->settings(['failure_mode' => 'rules_only'])]);
+
+        self::assertStringNotContainsString('kisi@example.test', $result->redactedText);
+        self::assertStringNotContainsString('0532 123 45 67', $result->redactedText);
+        self::assertStringContainsString('3 yıl 4 ay', $result->redactedText);
+        self::assertSame($source, $result->unmask($result->redactedText));
+        self::assertSame('review_required', $result->status);
+        self::assertSame('high', $result->riskLevel);
+        self::assertTrue($result->requiresHumanReview);
+        self::assertContains('LLM_DETECTION_FAILED', array_column($result->warnings, 'code'));
+        self::assertNotContains('LLM_OLLAMA', $result->appliedRules);
+        self::assertStringNotContainsString('private model output', json_encode($result->warnings));
+        self::assertStringNotContainsString('Kaynakta Olmayan', json_encode($result->map->all()));
+
+        // A per-call fallback must not weaken the next call's default contract.
+        $this->expectException(LlmDetectionException::class);
+        $redactor->redact($source, ['llm' => $this->settings()]);
+    }
+
+    public static function optionalLlmFailures(): array
+    {
+        return [['source_mismatch'], ['invalid_json'], ['connection'], ['output_limit']];
+    }
+
+    public function test_failure_mode_rejects_unknown_values(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        new LlmOptions(['failure_mode' => 'silently_ignore']);
+    }
+
+    public function test_optional_llm_model_capability_failure_does_not_interrupt_local_rules(): void
+    {
+        $transport = new RecordingLlmTransport();
+        $transport->modelInfo = ['thinking' => ['values' => [true], 'default' => true]];
+        $result = $this->redactor($transport, rules: true)->redact('kisi@example.test', ['llm' => $this->settings([
+            'failure_mode' => 'rules_only', 'think' => false,
+        ])]);
+        self::assertStringNotContainsString('kisi@example.test', $result->redactedText);
+        self::assertContains('LLM_DETECTION_FAILED', array_column($result->warnings, 'code'));
+        self::assertCount(1, $transport->calls); // Capability check only; no unsupported chat request.
+    }
+
     public function test_layout_only_model_changes_preserve_original_spans_and_reversible_values(): void
     {
         $transport = new RecordingLlmTransport();

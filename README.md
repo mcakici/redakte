@@ -62,6 +62,39 @@ yeni sürüm için kullanılmaz. Packagist henüz güncellenmemişse en fazla 15
 beklenir; doğrulama başarısızsa README değiştirilmez. İş akışı Actions ekranından
 elle de yeniden çalıştırılabilir; eski bir çalıştırmayı tekrarlamak sürümü geriye almaz.
 
+### 1.0.9: İsteğe bağlı LLM katmanı başarısız olduğunda devam etme
+
+```bash
+composer require mcakici/redakte:^1.0.9
+```
+
+Yerel regex/sözlük katmanını koruyup LLM hatalarında belge akışını sürdürmek için:
+
+```php
+$result = $redactor->redact($text, ['llm' => [
+    'endpoint' => 'http://127.0.0.1:11434/api/chat',
+    'model' => 'your-model',
+    'failure_mode' => 'rules_only',
+]]);
+```
+
+Kaynak uyuşmazlığı ve mevcut sınırlı kurtarma tamamlanamadığında, geçersiz JSON,
+bağlantı, süre/üretim sınırı veya model yetenek hatasında yalnız yerel dedektörlerin
+sonuçları uygulanır. Doğrulanmamış LLM adayları veya yarım LLM sonuçları uygulanmaz.
+Sonuç `LLM_DETECTION_FAILED` uyarısı, `review_required` durumu ve yüksek risk taşır.
+Bu uyarı uygulama telemetrisi içindir; yerel kurallar bazı bağlamsal isimleri ve diğer
+kişisel verileri kaçırabilir. Varsayılan `failure_mode = throw` önceki hata sözleşmesini
+korur. Yerel dedektör hataları veya geçersiz ayar değerleri bu seçenekle gizlenmez.
+
+Hukuki analizde yalnız tanımlayıcılara odaklanmak için `system_prompt` değerini
+`LlmOptions::IDENTIFIERS_SYSTEM_PROMPT`, `entity_types` değerini
+`LlmOptions::IDENTIFIER_TYPES` yapabilirsiniz. `preserve_legal_facts = true` paket
+ayarında süreler (`3 yıl`, `21 gün`), normal tarihler ve yaygın kanun/sözleşme adları
+yanlış kişisel veri etiketlerine karşı korunur; açık doğum tarihi maskelenmeye devam
+eder. Ayrı kişiler `[KISI_1]`, `[KISI_2]`, `[KISI_3]` olarak numaralanır; aynı kişi
+oturum boyunca aynı tokenı alır. Eski snapshotlar için
+`RedactionSnapshotRepair::apply($snapshot, $source, preserveLegalFacts: true)` kullanılabilir.
+
 ### 1.0.8: Kaynak eşleştirme ve sınırlı LLM kurtarması
 
 ```bash

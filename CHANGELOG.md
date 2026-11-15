@@ -2,6 +2,17 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.9] - 2026-11-15
+
+### İsteğe bağlı LLM katmanında kesintisiz yerel maskeleme
+
+- `llm.failure_mode = rules_only` seçeneği eklendi. Kaynak uyuşmazlığı, geçersiz model çıktısı, bağlantı, süre/üretim sınırı veya model yetenek hatasında mevcut yerel dedektör sonuçlarıyla maskeleme tamamlanır.
+- Reddedilen LLM adayları uygulanmaz. Sonuç `LLM_DETECTION_FAILED` uyarısı, `review_required` durumu ve yüksek risk bilgisi taşır; yerel kuralların bağlamsal kişisel verileri eksiksiz bulduğu varsayılmaz.
+- Varsayılan `throw` sözleşmesi, kaynak doğrulaması ve sınırlı kurtarma korunur. Çağrıya özel tercih sonraki çağrılara taşınmaz; yerel dedektör hataları gizlenmez.
+- Doğrudan tanımlayıcılara odaklanan kısa `IDENTIFIERS_SYSTEM_PROMPT` ve `IDENTIFIER_TYPES` profili eklendi; kişiye ait banka adı için `BANKA` türü tanımlandı.
+- İsteğe bağlı `preserve_legal_facts` kuralı süreleri, normal tarihleri ve yaygın kanun/sözleşme adlarını yanlış maskelemeye karşı korur. Açık doğum tarihi, gerçek kişi, şehir, banka ve hesap/kimlik numaraları korunmaya devam eder. Eski snapshot yanlışları aynı seçenekle yeniden model çağrısı olmadan düzeltilebilir.
+- PHP 8.4 üzerinde 238 test / 763 assertion ve 6 sürüm rozeti testi geçti. Sentetik model/HTTP regresyonlarıdır.
+
 ## [1.0.8] - 2026-11-14
 
 ### Kaynak doğrulama ve sınırlı kurtarma
