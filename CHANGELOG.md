@@ -2,6 +2,13 @@
 
 Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir. Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur.
 
+## [1.0.10] - 2026-11-15
+
+### Tarih bağlamında Türkçe büyük harf desteği
+
+- `DOĞUM TARİHİ`, `DOĞUM YERİ VE TARİHİ` ve `D.TARİHİ` gibi etiketler Türkçe büyük harflerle de doğum tarihi olarak korunur ve maskelenir.
+- Normal ISO ve ay adıyla yazılmış olay tarihleri hukuki olgu korumasına eklendi.
+
 ## [1.0.9] - 2026-11-15
 
 ### İsteğe bağlı LLM katmanında kesintisiz yerel maskeleme

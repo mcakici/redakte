@@ -22,7 +22,8 @@ class LegalFactContextTest extends TestCase
         return [['3 yıl', 'KISI'], ['21 gün', 'DIGER_KISISEL'], ['3 YIL 21 GÜN', 'CEZA_BILGISI'],
             ['3 yıl, 21 gün', 'ADRES'], ['12.05.2026', 'DOGUM_TARIHI'], ['2026', 'KISI'],
             ['Türk Borçlar Kanunu', 'KISI'], ['İş Kanunu', 'KISI'], ['Kira Sözleşmesi', 'KISI'],
-            ['BELİRSİZ SÜRELİ İŞ SÖZLEŞMESİ', 'DIGER_KISISEL']];
+            ['BELİRSİZ SÜRELİ İŞ SÖZLEŞMESİ', 'DIGER_KISISEL'], ['2026-11-15', 'DOGUM_TARIHI'],
+            ['15 Kasım 2026', 'DOGUM_TARIHI']];
     }
 
     #[DataProvider('birthContexts')]
@@ -34,7 +35,8 @@ class LegalFactContextTest extends TestCase
 
     public static function birthContexts(): array
     {
-        return [['Doğum tarihi: 12.05.1980'], ['D.T.: 12.05.1980'], ['12.05.1980 doğumlu Ayşe Demir']];
+        return [['Doğum tarihi: 12.05.1980'], ['D.T.: 12.05.1980'], ['12.05.1980 doğumlu Ayşe Demir'],
+            ['DOĞUM TARİHİ: 12.05.1980'], ['DOĞUM YERİ VE TARİHİ: 12.05.1980'], ['D.TARİHİ: 12.05.1980']];
     }
 
     public function test_real_identifiers_and_personalized_contract_parties_are_not_excluded(): void

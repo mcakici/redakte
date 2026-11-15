@@ -19,10 +19,12 @@ final class LegalFactContext
 
         // These exclusions apply to broad/contextual labels, never identifiers
         // such as a customer/account/identity number that happens to look like a date.
-        if (preg_match('/\A(?:\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}|(?:19|20)\d{2})\z/u', $value) === 1) {
+        if (preg_match('/\A(?:\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}|(?:19|20)\d{2}-\d{1,2}-\d{1,2}|\d{1,2}\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(?:19|20)\d{2}|(?:19|20)\d{2})\z/u', $value) === 1) {
             $before = mb_strcut(substr($source, 0, $start), -100, null, 'UTF-8');
             $after = mb_strcut(substr($source, $end), 0, 40, 'UTF-8');
-            $birth = preg_match('/(?:doğum(?:\s+tarihi|\s+günü)?|d\.?\s*t\.?|doğdu(?:ğu)?)\s*[:=\-]?\s*\z/ui', $before) === 1
+            $before = mb_strtolower(strtr($before, ['İ' => 'i', 'I' => 'ı']), 'UTF-8');
+            $after = mb_strtolower(strtr($after, ['İ' => 'i', 'I' => 'ı']), 'UTF-8');
+            $birth = preg_match('/(?:doğum(?:\s+tarihi(?:\s+ve\s+yeri)?|\s+yeri\s+ve\s+tarihi|\s+günü)?|d\.?\s*t(?:arihi)?\.?|doğdu(?:ğu)?)\s*[:=\-]?\s*\z/ui', $before) === 1
                 || preg_match('/\A\s*(?:tarihinde\s+)?doğ(?:umlu|du|muş)/ui', $after) === 1;
 
             return !$birth;
